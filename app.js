@@ -9,8 +9,9 @@ const S = {
   syncing: false,
 };
 
-const mv = document.getElementById("mv"); // 伴奏字幕影片(含音樂)
-const vocals = document.getElementById("vocals"); // 人聲音檔
+const mv = document.getElementById("mv");
+const vocals = document.getElementById("vocals");
+const backing = document.getElementById("backing");
 const seek = document.getElementById("seek");
 const time = document.getElementById("time");
 
@@ -34,34 +35,35 @@ const fmt = (s) => {
 };
 
 function applyMode() {
-  // 伴奏影片總是開聲（因它只有音樂+字幕）
-  mv.muted = false;
+  mv.muted = true;
   if (S.mode === "instrumental") {
+    backing.muted = false;
     vocals.muted = true;
   } else if (S.mode === "guide") {
+    backing.muted = true;
     vocals.muted = false;
     vocals.volume = parseFloat(vocalVol.value) * S.guideVol;
-  } else {
-    // vocal
+  } else if (S.mode === "vocal") {
+    backing.muted = true;
     vocals.muted = false;
     vocals.volume = parseFloat(vocalVol.value);
+  } else {
+    console.warn("未知的模式", S.mode);
   }
 
-  // 若影片正在播放，確保 vocals 與影片時間對齊且正在播放（避免切換時產生先後播放）
   if (!mv.paused) {
     try {
-      // 若時間差超過 50ms，直接對齊
       if (Math.abs((vocals.currentTime || 0) - (mv.currentTime || 0)) > 0.05) {
+        backing.currentTime = mv.currentTime;
         vocals.currentTime = mv.currentTime;
       }
-      // 嘗試啟動 vocals（如果被瀏覽器策略阻擋就忽略錯誤）
+      backing.play().catch(() => {});
       vocals.play().catch(() => {});
     } catch (e) {
-      // ignore
+      console.error(e);
     }
   }
 
-  // UI 標示
   for (const id of ["mode伴奏", "mode導唱", "mode原唱"])
     document.getElementById(id).classList.remove("muted");
   const map = {
@@ -74,9 +76,11 @@ function applyMode() {
 
 function loadSong(song) {
   mv.src = song.videoUrl;
+  backing.src = song.backingUrl;
   vocals.src = song.vocalUrl;
   S.offset = 0;
   mv.currentTime = 0;
+  backing.currentTime = 0;
   vocals.currentTime = 0;
   applyMode();
 }
@@ -86,10 +90,16 @@ async function playSync() {
     await mv.play();
     // 等影片開始跑再啟人聲，避免自動播放策略被擋
     const startVocals = () => vocals.play().catch(() => {});
-    if (mv.readyState >= 2) startVocals();
-    else mv.addEventListener("playing", startVocals, { once: true });
+    const startBacking = () => backing.play().catch(() => {});
+    if (mv.readyState >= 2) {
+      startVocals();
+      startBacking();
+    } else {
+      mv.addEventListener("playing", startVocals, { once: true });
+      mv.addEventListener("playing", startBacking, { once: true });
+    }
   } catch (e) {
-    // 需要使用者互動才可播放
+    console.error(e);
   }
 }
 
@@ -99,8 +109,8 @@ function pauseBoth() {
 }
 
 function restartBoth() {
-  // 從目前 mv 的時間重新對齊 vocals
   mv.currentTime = 0;
+  backing.currentTime = mv.currentTime;
   vocals.currentTime = mv.currentTime;
   playSync();
 }
@@ -114,6 +124,7 @@ function tickSync() {
   // 閾值從 80ms 調小為 50ms，減少大幅跳動造成的聽感不連續
   if (Math.abs(drift) > 0.05) {
     // 超過50ms就糾正
+    backing.currentTime = mv.currentTime;
     vocals.currentTime = mv.currentTime;
   }
   S.syncing = false;
@@ -135,13 +146,13 @@ requestAnimationFrame(updateUI);
 // 綁事件
 mv.addEventListener("timeupdate", tickSync);
 mv.addEventListener("seeking", () => {
-  // seeking 時直接以影片時間為準
+  backing.currentTime = mv.currentTime;
   vocals.currentTime = mv.currentTime;
 });
-offsetMs.removeEventListener?.("change", () => {}); // 停用舊 listener（若存在）
-/* 移除原本的 offsetMs change handler - 不再讓使用者改變同步 */
+
 seek.addEventListener("input", () => {
   mv.currentTime = parseFloat(seek.value) || 0;
+  backing.currentTime = mv.currentTime;
   vocals.currentTime = mv.currentTime;
 });
 
