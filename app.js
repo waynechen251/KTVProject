@@ -320,10 +320,23 @@ btnSearch.onclick = () => {
 
 // 自動播下一首
 mv.addEventListener("ended", () => {
-  if (S.currentIndex < S.queue.length - 1) {
-    S.currentIndex++;
+  const idx = S.currentIndex;
+  if (idx === -1) return;
+
+  // 從佇列移除當前曲目
+  S.queue.splice(idx, 1);
+
+  if (S.queue.length === 0) {
+    // 沒有剩餘曲目：重設狀態、暫停、並隱藏舞台
+    S.currentIndex = -1;
+    pauseBoth();
+  } else {
+    // 若移除後仍有曲目，確保 currentIndex 在範圍內，並播放該曲（splice 後下一首會位於原 idx）
+    if (idx >= S.queue.length) S.currentIndex = S.queue.length - 1;
+    else S.currentIndex = idx;
     playCurrent();
   }
+  renderQueue();
 });
 
 // 啟動

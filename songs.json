@@ -4,8 +4,8 @@
         "title": "why do we fall in love",
         "artist": "Milena",
         "videoUrl": "db/songs/Milena/why do we fall in love/Milena_why_do_we_fall_in_love[KTV字幕].mp4",
-        "backingUrl": "db/songs/Milena/why do we fall in love/Milena_why_do_we_fall_in_love[KTV字幕伴奏].m4a",
-        "vocalUrl": "db/songs/Milena/why do we fall in love/Milena_why_do_we_fall_in_love[KTV字幕人聲].m4a",
+        "backingUrl": "db/songs/Milena/why do we fall in love/Milena_why_do_we_fall_in_love[KTV伴奏].m4a",
+        "vocalUrl": "db/songs/Milena/why do we fall in love/Milena_why_do_we_fall_in_love[KTV人聲].m4a",
         "duration": 187
     },
     {
@@ -13,8 +13,8 @@
         "title": "Foot on the Moon",
         "artist": "Milena",
         "videoUrl": "db/songs/Milena/Foot on the Moon/Milena_Foot_on_the_Moon[KTV字幕].mp4",
-        "backingUrl": "db/songs/Milena/Foot on the Moon/Milena_Foot_on_the_Moon[KTV字幕伴奏].m4a",
-        "vocalUrl": "db/songs/Milena/Foot on the Moon/Milena_Foot_on_the_Moon[KTV字幕人聲].m4a",
+        "backingUrl": "db/songs/Milena/Foot on the Moon/Milena_Foot_on_the_Moon[KTV伴奏].m4a",
+        "vocalUrl": "db/songs/Milena/Foot on the Moon/Milena_Foot_on_the_Moon[KTV人聲].m4a",
         "duration": 187
     }
 ]
