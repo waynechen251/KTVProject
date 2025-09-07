@@ -5,7 +5,7 @@ const S = {
   currentIndex: -1, // 目前佇列索引
   mode: "instrumental", // instrumental|guide|vocal
   guideVol: 0.5, // 導唱音量
-  offset: 0, // 人聲相對影片偏移(秒)
+  offset: 0, // 固定為 0，不允許使用者調整
   syncing: false,
 };
 
@@ -46,6 +46,21 @@ function applyMode() {
     vocals.muted = false;
     vocals.volume = parseFloat(vocalVol.value);
   }
+
+  // 若影片正在播放，確保 vocals 與影片時間對齊且正在播放（避免切換時產生先後播放）
+  if (!mv.paused) {
+    try {
+      // 若時間差超過 50ms，直接對齊
+      if (Math.abs((vocals.currentTime || 0) - (mv.currentTime || 0)) > 0.05) {
+        vocals.currentTime = mv.currentTime;
+      }
+      // 嘗試啟動 vocals（如果被瀏覽器策略阻擋就忽略錯誤）
+      vocals.play().catch(() => {});
+    } catch (e) {
+      // ignore
+    }
+  }
+
   // UI 標示
   for (const id of ["mode伴奏", "mode導唱", "mode原唱"])
     document.getElementById(id).classList.remove("muted");
@@ -60,7 +75,7 @@ function applyMode() {
 function loadSong(song) {
   mv.src = song.videoUrl;
   vocals.src = song.vocalUrl;
-  S.offset = (parseInt(offsetMs.value) || 0) / 1000;
+  S.offset = 0;
   mv.currentTime = 0;
   vocals.currentTime = 0;
   applyMode();
@@ -84,8 +99,9 @@ function pauseBoth() {
 }
 
 function restartBoth() {
+  // 從目前 mv 的時間重新對齊 vocals
   mv.currentTime = 0;
-  vocals.currentTime = S.offset;
+  vocals.currentTime = mv.currentTime;
   playSync();
 }
 
@@ -93,10 +109,12 @@ function restartBoth() {
 function tickSync() {
   if (S.syncing) return;
   S.syncing = true;
-  const drift = vocals.currentTime - (mv.currentTime + S.offset);
-  if (Math.abs(drift) > 0.08) {
-    // 超過80ms就糾正
-    vocals.currentTime = mv.currentTime + S.offset;
+  // 改用絕對同播時間（offset 固定 0）
+  const drift = vocals.currentTime - mv.currentTime;
+  // 閾值從 80ms 調小為 50ms，減少大幅跳動造成的聽感不連續
+  if (Math.abs(drift) > 0.05) {
+    // 超過50ms就糾正
+    vocals.currentTime = mv.currentTime;
   }
   S.syncing = false;
 }
@@ -117,16 +135,14 @@ requestAnimationFrame(updateUI);
 // 綁事件
 mv.addEventListener("timeupdate", tickSync);
 mv.addEventListener("seeking", () => {
-  vocals.currentTime = mv.currentTime + S.offset;
+  // seeking 時直接以影片時間為準
+  vocals.currentTime = mv.currentTime;
 });
-vocalVol.addEventListener("input", applyMode);
-offsetMs.addEventListener("change", () => {
-  S.offset = (parseInt(offsetMs.value) || 0) / 1000;
-  vocals.currentTime = mv.currentTime + S.offset;
-});
+offsetMs.removeEventListener?.("change", () => {}); // 停用舊 listener（若存在）
+/* 移除原本的 offsetMs change handler - 不再讓使用者改變同步 */
 seek.addEventListener("input", () => {
   mv.currentTime = parseFloat(seek.value) || 0;
-  vocals.currentTime = mv.currentTime + S.offset;
+  vocals.currentTime = mv.currentTime;
 });
 
 // 控制鍵
@@ -233,14 +249,55 @@ async function loadDB() {
 function renderResults(list) {
   const panel = document.getElementById("results");
   panel.innerHTML = "";
-  list.forEach((s) => {
-    const row = document.createElement("div");
-    row.className = "row";
-    row.innerHTML = `<div class="grow">${s.title} - ${s.artist}</div>
-      <button data-id="${s.id}">點歌</button>`;
-    row.querySelector("button").onclick = () => enqueue(s.id);
-    panel.appendChild(row);
-  });
+
+  const table = document.createElement("table");
+  table.style.width = "100%";
+  table.style.borderCollapse = "collapse";
+
+  const thead = document.createElement("thead");
+  thead.innerHTML = `<tr>
+    <th style="text-align:left;padding:6px;border-bottom:1px solid #333">編號</th>
+    <th style="text-align:left;padding:6px;border-bottom:1px solid #333">歌手</th>
+    <th style="text-align:left;padding:6px;border-bottom:1px solid #333">歌名</th>
+    <th style="text-align:center;padding:6px;border-bottom:1px solid #333">點歌</th>
+  </tr>`;
+  table.appendChild(thead);
+
+  const tbody = document.createElement("tbody");
+
+  if (!list || list.length === 0) {
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 4;
+    td.textContent = "沒有符合的歌曲";
+    td.style.padding = "8px";
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+  } else {
+    list.forEach((s) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td style="padding:6px;border-bottom:1px dashed #333">${
+        s.id
+      }</td>
+        <td style="padding:6px;border-bottom:1px dashed #333">${
+          s.artist || ""
+        }</td>
+        <td style="padding:6px;border-bottom:1px dashed #333">${
+          s.title || ""
+        }</td>
+        <td style="padding:6px;border-bottom:1px dashed #333;text-align:center">
+          <button data-id="${s.id}">點歌</button>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+    // 綁定按鈕事件
+    tbody.querySelectorAll("button").forEach((b) => {
+      b.onclick = () => enqueue(b.dataset.id);
+    });
+  }
+
+  table.appendChild(tbody);
+  panel.appendChild(table);
 }
 btnSearch.onclick = () => {
   const k = kw.value.trim().toLowerCase();

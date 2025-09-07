@@ -22,7 +22,18 @@
       <button id="mode伴奏" data-mode="instrumental">伴奏</button>
       <button id="mode導唱" data-mode="guide">導唱</button>
       <button id="mode原唱" data-mode="vocal">原唱</button>
-      <label class="row" style="gap: 6px; margin-left: 12px">
+      <input
+        hidden
+        id="offsetMs"
+        type="number"
+        value="0"
+        style="width: 90px"
+        disabled
+        title="同步由系統自動管理，不允許手動調整"
+      />
+    </div>
+    <div class="row" style="margin-top: 8px">
+      <span><label class="row" style="margin-top: 8px">
         人聲音量
         <input
           id="vocalVol"
@@ -32,15 +43,10 @@
           step="0.01"
           value="0.8"
         />
-      </label>
-      <label class="row" style="gap: 6px">
-        人聲延遲(ms)
-        <input id="offsetMs" type="number" value="0" style="width: 90px" />
-      </label>
+      </label></span>
     </div>
     <div class="row" style="margin-top: 8px">
-      <label class="grow"
-        >進度
+      <span><label class="grow">
         <input
           id="seek"
           type="range"
@@ -49,7 +55,7 @@
           step="0.1"
           value="0"
           class="grow"
-        />
+        /></span>
       </label>
       <span id="time">00:00 / 00:00</span>
     </div>
