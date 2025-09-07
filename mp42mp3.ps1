@@ -1,7 +1,7 @@
 param(
     [string]$FfmpegPath = 'D:/GitHub/YTDownload/ffmpeg/bin/ffmpeg.exe',
-    [string]$InputPath = 'D:/GitHub/KTVProject/db/songs/Milena/why do we fall in love/Milena_why_do_we_fall_in_love[KTV字幕].mp4',
-    [string]$OutputPath = 'D:/GitHub/KTVProject/db/songs/Milena/why do we fall in love/Milena_why_do_we_fall_in_love[KTV字幕].mp3'
+    [string]$InputPath = 'D:/GitHub/KTVProject/db/songs/Milena/Foot on the Moon/Milena_Foot_on_the_Moon[KTV字幕].mp4',
+    [string]$OutputPath = 'D:/GitHub/KTVProject/db/songs/Milena/Foot on the Moon/Milena_Foot_on_the_Moon[KTV字幕].mp3'
 )
 
 function Start-FFmpegAsync([string]$inputFile, [string]$outputFile) {
