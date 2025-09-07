@@ -3,8 +3,7 @@ const S = {
   songs: [], // 歌曲資料庫
   queue: [], // 佇列: [songId, ...]
   currentIndex: -1, // 目前佇列索引
-  mode: "instrumental", // instrumental|guide|vocal
-  guideVol: 0.5, // 導唱音量
+  mode: "instrumental", // instrumental|vocal
   offset: 0, // 固定為 0，不允許使用者調整
   syncing: false,
 };
@@ -23,7 +22,6 @@ const btnNext = document.getElementById("btnNext");
 const btnClear = document.getElementById("btnClear");
 const btnSearch = document.getElementById("btnSearch");
 const kw = document.getElementById("kw");
-const vocalVol = document.getElementById("vocalVol");
 const offsetMs = document.getElementById("offsetMs");
 
 // ====== 工具 ======
@@ -39,14 +37,9 @@ function applyMode() {
   if (S.mode === "instrumental") {
     backing.muted = false;
     vocals.muted = true;
-  } else if (S.mode === "guide") {
-    backing.muted = true;
-    vocals.muted = false;
-    vocals.volume = parseFloat(vocalVol.value) * S.guideVol;
   } else if (S.mode === "vocal") {
     backing.muted = true;
     vocals.muted = false;
-    vocals.volume = parseFloat(vocalVol.value);
   } else {
     console.warn("未知的模式", S.mode);
   }
@@ -68,7 +61,6 @@ function applyMode() {
     document.getElementById(id).classList.remove("muted");
   const map = {
     instrumental: "mode伴奏",
-    guide: "mode導唱",
     vocal: "mode原唱",
   };
   document.getElementById(map[S.mode]).classList.add("muted");
@@ -162,10 +154,6 @@ btnPause.onclick = pauseBoth;
 btnRestart.onclick = restartBoth;
 document.getElementById("mode伴奏").onclick = () => {
   S.mode = "instrumental";
-  applyMode();
-};
-document.getElementById("mode導唱").onclick = () => {
-  S.mode = "guide";
   applyMode();
 };
 document.getElementById("mode原唱").onclick = () => {
