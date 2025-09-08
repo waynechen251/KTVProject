@@ -242,34 +242,62 @@ function removeAt(idx) {
   renderQueue();
 }
 
+function moveTo(oldIdx, targetPos) {
+  if (oldIdx < 0 || oldIdx >= S.queue.length) return;
+  const id = S.queue[oldIdx];
+  const currentSongId = S.currentIndex !== -1 ? S.queue[S.currentIndex] : null;
+  S.queue.splice(oldIdx, 1);
+  const pos = Math.max(0, Math.min(targetPos, S.queue.length));
+  S.queue.splice(pos, 0, id);
+  if (currentSongId) {
+    S.currentIndex = S.queue.findIndex((x) => x === currentSongId);
+    if (S.currentIndex === -1) S.currentIndex = 0;
+  }
+  renderQueue();
+}
+
+function insertAfterCurrent(oldIdx) {
+  const target = S.currentIndex === -1 ? 0 : S.currentIndex + 1;
+  moveTo(oldIdx, target);
+}
+
 function renderQueue() {
   const box = document.getElementById("queue");
   box.innerHTML = "";
+  const queueCountEl = document.getElementById("queueCount");
+  const waiting = Math.max(0, S.queue.length - (S.currentIndex === -1 ? 0 : 1));
+  if (queueCountEl) queueCountEl.textContent = String(waiting);
+
   S.queue.forEach((id, i) => {
     const s = S.songs.find((x) => x.id === id);
     const li = document.createElement("li");
-    li.innerHTML = `<span>${i === S.currentIndex ? "▶︎ " : ""}${
+    const isCurrent = i === S.currentIndex;
+    const label = `<span>${i + 1}. ${isCurrent ? "正在撥放▶︎ " : ""}${
       s?.title || id
-    } - ${s?.artist || ""}</span>
-      <span>
-        <button data-i="${i}" class="go">播放</button>
-        <button data-i="${i}" class="del">刪除</button>
-      </span>`;
+    } - ${s?.artist || ""}</span>`;
+
+    const controls = document.createElement("span");
+    if (!isCurrent) {
+      const ins = document.createElement("button");
+      ins.textContent = "插播";
+      ins.dataset.i = String(i);
+      ins.className = "insert";
+      ins.onclick = (e) => {
+        insertAfterCurrent(parseInt(e.target.dataset.i, 10));
+      };
+      controls.appendChild(ins);
+    }
+    const del = document.createElement("button");
+    del.textContent = "刪除";
+    del.dataset.i = String(i);
+    del.className = "del";
+    del.onclick = (e) => removeAt(parseInt(e.target.dataset.i, 10));
+    controls.appendChild(del);
+
+    li.innerHTML = label;
+    li.appendChild(controls);
     box.appendChild(li);
   });
-  box.querySelectorAll(".go").forEach(
-    (b) =>
-      (b.onclick = (e) => {
-        S.currentIndex = parseInt(e.target.dataset.i, 10);
-        playCurrent();
-      })
-  );
-  box.querySelectorAll(".del").forEach(
-    (b) =>
-      (b.onclick = (e) => {
-        removeAt(parseInt(e.target.dataset.i, 10));
-      })
-  );
 }
 
 async function loadDB() {
