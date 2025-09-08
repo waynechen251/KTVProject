@@ -57,7 +57,7 @@ function applyMode() {
     }
   }
 
-  for (const id of ["mode伴奏", "mode導唱", "mode原唱"])
+  for (const id of ["mode伴奏", "mode原唱"])
     document.getElementById(id).classList.remove("muted");
   const map = {
     instrumental: "mode伴奏",
