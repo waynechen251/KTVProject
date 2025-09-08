@@ -112,6 +112,7 @@ async function playSync() {
 
 function pauseBoth() {
   mv.pause();
+  backing.pause();
   vocals.pause();
 }
 
