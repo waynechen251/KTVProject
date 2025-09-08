@@ -20,12 +20,11 @@ const volLabel = document.getElementById("volLabel");
 const btnPlay = document.getElementById("btnPlay");
 const btnPause = document.getElementById("btnPause");
 const btnRestart = document.getElementById("btnRestart");
-const btnPrev = document.getElementById("btnPrev");
-const btnNext = document.getElementById("btnNext");
 const btnClear = document.getElementById("btnClear");
 const btnSearch = document.getElementById("btnSearch");
 const kw = document.getElementById("kw");
 const offsetMs = document.getElementById("offsetMs");
+const btnSkip = document.getElementById("btnSkip");
 
 // ====== 工具 ======
 const fmt = (s) => {
@@ -171,18 +170,43 @@ document.getElementById("mode原唱").onclick = () => {
   applyMode();
 };
 
-btnPrev.onclick = () => {
-  if (S.currentIndex > 0) {
-    S.currentIndex--;
+btnSkip.onclick = () => {
+  try {
+    mv.pause();
+  } catch (e) {}
+  handleEnded();
+};
+
+function handleEnded() {
+  const idx = S.currentIndex;
+  if (idx === -1) return;
+
+  S.queue.splice(idx, 1);
+
+  if (S.queue.length === 0) {
+    S.currentIndex = -1;
+    pauseBoth();
+
+    try {
+      mv.src = "";
+      mv.load();
+      backing.src = "";
+      backing.load();
+      vocals.src = "";
+      vocals.load();
+    } catch (e) {
+      console.error("清除媒體來源失敗", e);
+    }
+  } else {
+    if (idx >= S.queue.length) S.currentIndex = S.queue.length - 1;
+    else S.currentIndex = idx;
     playCurrent();
   }
-};
-btnNext.onclick = () => {
-  if (S.currentIndex < S.queue.length - 1) {
-    S.currentIndex++;
-    playCurrent();
-  }
-};
+  renderQueue();
+}
+
+mv.addEventListener("ended", handleEnded);
+
 btnClear.onclick = () => {
   S.queue.length = 0;
   S.currentIndex = -1;
@@ -312,34 +336,6 @@ btnSearch.onclick = () => {
   );
   renderResults(list);
 };
-
-mv.addEventListener("ended", () => {
-  const idx = S.currentIndex;
-  if (idx === -1) return;
-
-  S.queue.splice(idx, 1);
-
-  if (S.queue.length === 0) {
-    S.currentIndex = -1;
-    pauseBoth();
-
-    try {
-      mv.src = "";
-      mv.load();
-      backing.src = "";
-      backing.load();
-      vocals.src = "";
-      vocals.load();
-    } catch (e) {
-      console.error("清除媒體來源失敗", e);
-    }
-  } else {
-    if (idx >= S.queue.length) S.currentIndex = S.queue.length - 1;
-    else S.currentIndex = idx;
-    playCurrent();
-  }
-  renderQueue();
-});
 
 if (masterVol) {
   masterVol.addEventListener("input", (e) => {
