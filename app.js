@@ -43,7 +43,8 @@ function applyVolume() {
   } catch (e) {
     console.error(e);
   }
-  if (volLabel) volLabel.textContent = `${Math.round(v * 100)}%`;
+  if (volLabel)
+    volLabel.textContent = `${String(Math.round(v * 100)).padStart(3, "0")}%`;
 }
 
 function applyMode() {
@@ -321,6 +322,17 @@ mv.addEventListener("ended", () => {
   if (S.queue.length === 0) {
     S.currentIndex = -1;
     pauseBoth();
+
+    try {
+      mv.src = "";
+      mv.load();
+      backing.src = "";
+      backing.load();
+      vocals.src = "";
+      vocals.load();
+    } catch (e) {
+      console.error("清除媒體來源失敗", e);
+    }
   } else {
     if (idx >= S.queue.length) S.currentIndex = S.queue.length - 1;
     else S.currentIndex = idx;
