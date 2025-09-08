@@ -6,6 +6,7 @@ const S = {
   mode: "instrumental", // instrumental|vocal
   offset: 0, // 固定為 0，不允許使用者調整
   syncing: false,
+  masterVolume: 1, // 總音量（0..1）
 };
 
 const mv = document.getElementById("mv");
@@ -13,6 +14,8 @@ const vocals = document.getElementById("vocals");
 const backing = document.getElementById("backing");
 const seek = document.getElementById("seek");
 const time = document.getElementById("time");
+const masterVol = document.getElementById("masterVol");
+const volLabel = document.getElementById("volLabel");
 
 const btnPlay = document.getElementById("btnPlay");
 const btnPause = document.getElementById("btnPause");
@@ -31,6 +34,17 @@ const fmt = (s) => {
   const ss = String(s % 60).padStart(2, "0");
   return `${m}:${ss}`;
 };
+function applyVolume() {
+  const v = typeof S.masterVolume === "number" ? S.masterVolume : 1;
+  try {
+    backing.volume = v;
+    vocals.volume = v;
+    mv.volume = v;
+  } catch (e) {
+    console.error(e);
+  }
+  if (volLabel) volLabel.textContent = `${Math.round(v * 100)}%`;
+}
 
 function applyMode() {
   mv.muted = true;
@@ -64,6 +78,8 @@ function applyMode() {
     vocal: "mode原唱",
   };
   document.getElementById(map[S.mode]).classList.add("muted");
+
+  applyVolume();
 }
 
 function loadSong(song) {
@@ -80,7 +96,6 @@ function loadSong(song) {
 async function playSync() {
   try {
     await mv.play();
-    // 等影片開始跑再啟人聲，避免自動播放策略被擋
     const startVocals = () => vocals.play().catch(() => {});
     const startBacking = () => backing.play().catch(() => {});
     if (mv.readyState >= 2) {
@@ -107,22 +122,17 @@ function restartBoth() {
   playSync();
 }
 
-// 時基同步：定期校正人聲到影片
 function tickSync() {
   if (S.syncing) return;
   S.syncing = true;
-  // 改用絕對同播時間（offset 固定 0）
   const drift = vocals.currentTime - mv.currentTime;
-  // 閾值從 80ms 調小為 50ms，減少大幅跳動造成的聽感不連續
   if (Math.abs(drift) > 0.05) {
-    // 超過50ms就糾正
     backing.currentTime = mv.currentTime;
     vocals.currentTime = mv.currentTime;
   }
   S.syncing = false;
 }
 
-// 進度條與時間
 function updateUI() {
   if (mv.duration && isFinite(mv.duration)) {
     seek.max = mv.duration;
@@ -135,7 +145,6 @@ function updateUI() {
 }
 requestAnimationFrame(updateUI);
 
-// 綁事件
 mv.addEventListener("timeupdate", tickSync);
 mv.addEventListener("seeking", () => {
   backing.currentTime = mv.currentTime;
@@ -148,7 +157,6 @@ seek.addEventListener("input", () => {
   vocals.currentTime = mv.currentTime;
 });
 
-// 控制鍵
 btnPlay.onclick = playSync;
 btnPause.onclick = pauseBoth;
 btnRestart.onclick = restartBoth;
@@ -161,7 +169,6 @@ document.getElementById("mode原唱").onclick = () => {
   applyMode();
 };
 
-// 佇列控制
 btnPrev.onclick = () => {
   if (S.currentIndex > 0) {
     S.currentIndex--;
@@ -239,7 +246,6 @@ function renderQueue() {
   );
 }
 
-// 搜尋與點歌
 async function loadDB() {
   const res = await fetch("songs.json");
   S.songs = await res.json();
@@ -289,7 +295,6 @@ function renderResults(list) {
         </td>`;
       tbody.appendChild(tr);
     });
-    // 綁定按鈕事件
     tbody.querySelectorAll("button").forEach((b) => {
       b.onclick = () => enqueue(b.dataset.id);
     });
@@ -306,20 +311,16 @@ btnSearch.onclick = () => {
   renderResults(list);
 };
 
-// 自動播下一首
 mv.addEventListener("ended", () => {
   const idx = S.currentIndex;
   if (idx === -1) return;
 
-  // 從佇列移除當前曲目
   S.queue.splice(idx, 1);
 
   if (S.queue.length === 0) {
-    // 沒有剩餘曲目：重設狀態、暫停、並隱藏舞台
     S.currentIndex = -1;
     pauseBoth();
   } else {
-    // 若移除後仍有曲目，確保 currentIndex 在範圍內，並播放該曲（splice 後下一首會位於原 idx）
     if (idx >= S.queue.length) S.currentIndex = S.queue.length - 1;
     else S.currentIndex = idx;
     playCurrent();
@@ -327,5 +328,16 @@ mv.addEventListener("ended", () => {
   renderQueue();
 });
 
-// 啟動
+if (masterVol) {
+  masterVol.addEventListener("input", (e) => {
+    const v = parseFloat(e.target.value);
+    if (Number.isFinite(v)) {
+      S.masterVolume = v;
+      applyVolume();
+    }
+  });
+  masterVol.value = String(S.masterVolume);
+  applyVolume();
+}
+
 loadDB();

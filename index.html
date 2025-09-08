@@ -5,7 +5,7 @@
 <div id="stage" class="panel">
   <video id="mv" playsinline preload="auto" muted></video>
   <audio id="backing" preload="auto"></audio>
-  <audio id="vocals"  preload="auto"></audio>
+  <audio id="vocals" preload="auto"></audio>
 </div>
 
 <div id="right">
@@ -31,41 +31,55 @@
         title="同步由系統自動管理，不允許手動調整"
       />
     </div>
-    <div class="row" style="margin-top: 8px">
-      <span><label class="grow">
-        <input
-          id="seek"
-          type="range"
-          min="0"
-          max="100"
-          step="0.1"
-          value="0"
-          class="grow"
-        /></span>
-      </label>
+
+    <div class="row" style="margin-top: 8px; align-items: center">
+      <input
+        id="masterVol"
+        type="range"
+        min="0"
+        max="1"
+        step="0.01"
+        value="1"
+        style="flex: 1"
+      />
+      <label for="masterVol">總音量：</label>
+      <span id="volLabel" style="width: 48px; text-align: right">100%</span>
+    </div>
+
+    <div class="row" style="margin-top: 8px; align-items: center">
+      <input
+        id="seek"
+        type="range"
+        min="0"
+        max="100"
+        step="0.1"
+        value="0"
+        class="grow"
+        style="flex: 1"
+      />
       <span id="time">00:00 / 00:00</span>
     </div>
+
+    <div class="panel">
+      <div class="row">
+        <input id="kw" class="grow" placeholder="搜尋歌名或歌手…" />
+        <button id="btnSearch">搜尋</button>
+      </div>
+      <div
+        id="results"
+        class="row"
+        style="margin-top: 8px; flex-direction: column; gap: 6px"
+      ></div>
+    </div>
+
+    <div class="panel queue">
+      <div class="row" style="justify-content: space-between">
+        <strong>播歌佇列</strong>
+        <button id="btnClear">清空佇列</button>
+      </div>
+      <ol id="queue"></ol>
+    </div>
   </div>
 
-  <div class="panel">
-    <div class="row">
-      <input id="kw" class="grow" placeholder="搜尋歌名或歌手…" />
-      <button id="btnSearch">搜尋</button>
-    </div>
-    <div
-      id="results"
-      class="row"
-      style="margin-top: 8px; flex-direction: column; gap: 6px"
-    ></div>
-  </div>
-
-  <div class="panel queue">
-    <div class="row" style="justify-content: space-between">
-      <strong>播歌佇列</strong>
-      <button id="btnClear">清空佇列</button>
-    </div>
-    <ol id="queue"></ol>
-  </div>
+  <script src="app.js" defer></script>
 </div>
-
-<script src="app.js" defer></script>
