@@ -16,5 +16,14 @@
         "backingUrl": "db/songs/Milena/Foot on the Moon/Milena_Foot_on_the_Moon[KTV伴奏].m4a",
         "vocalUrl": "db/songs/Milena/Foot on the Moon/Milena_Foot_on_the_Moon[KTV人聲].m4a",
         "duration": 187
+    },
+    {
+        "id": "3",
+        "title": "Die With A Smile",
+        "artist": "Lady Gaga",
+        "videoUrl": "db/songs/Lady Gaga/Die With A Smile/Die_With_A_Smile[KTV字幕].mp4",
+        "backingUrl": "db/songs/Lady Gaga/Die With A Smile/Die_With_A_Smile[KTV伴奏].m4a",
+        "vocalUrl": "db/songs/Lady Gaga/Die With A Smile/Die_With_A_Smile[KTV人聲].m4a",
+        "duration": 187
     }
 ]
