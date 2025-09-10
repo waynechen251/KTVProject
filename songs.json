@@ -19,6 +19,15 @@
     },
     {
         "id": "3",
+        "title": "Where to Begin",
+        "artist": "Milena",
+        "videoUrl": "db/songs/Milena/Where to Begin/Milena_Where_to_Begin[KTV字幕].mp4",
+        "backingUrl": "db/songs/Milena/Where to Begin/Milena_Where_to_Begin[KTV伴奏].m4a",
+        "vocalUrl": "db/songs/Milena/Where to Begin/Milena_Where_to_Begin[KTV人聲].m4a",
+        "duration": 187
+    },
+    {
+        "id": "4",
         "title": "Die With A Smile",
         "artist": "Lady Gaga",
         "videoUrl": "db/songs/Lady Gaga/Die With A Smile/Die_With_A_Smile[KTV字幕].mp4",

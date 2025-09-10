@@ -377,4 +377,17 @@ if (masterVol) {
   applyVolume();
 }
 
+function detectMobileLayout() {
+  const ua = navigator.userAgent || "";
+  const isMobileUA = /Mobi|Android|iPhone|iPad|iPod|Windows Phone/i.test(ua);
+  const isTouch =
+    "ontouchstart" in window ||
+    (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) ||
+    (window.matchMedia && window.matchMedia("(pointer:coarse)").matches);
+  const isMobile = isMobileUA || isTouch;
+  document.body.classList.toggle("mobile", !!isMobile);
+}
+detectMobileLayout();
+window.addEventListener("resize", detectMobileLayout);
+
 loadDB();
