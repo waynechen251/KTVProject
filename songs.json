@@ -14,8 +14,7 @@
         "artist": "Milena",
         "videoUrl": "db/songs/Milena/Foot on the Moon/Milena_Foot_on_the_Moon[KTV字幕].mp4",
         "backingUrl": "db/songs/Milena/Foot on the Moon/Milena_Foot_on_the_Moon[KTV伴奏].m4a",
-        "vocalUrl": "db/songs/Milena/Foot on the Moon/Milena_Foot_on_the_Moon[KTV人聲].m4a",
-        "duration": 187
+        "vocalUrl": "db/songs/Milena/Foot on the Moon/Milena_Foot_on_the_Moon[KTV人聲].m4a"
     },
     {
         "id": "3",
@@ -23,8 +22,7 @@
         "artist": "Milena",
         "videoUrl": "db/songs/Milena/Where to Begin/Milena_Where_to_Begin[KTV字幕].mp4",
         "backingUrl": "db/songs/Milena/Where to Begin/Milena_Where_to_Begin[KTV伴奏].m4a",
-        "vocalUrl": "db/songs/Milena/Where to Begin/Milena_Where_to_Begin[KTV人聲].m4a",
-        "duration": 187
+        "vocalUrl": "db/songs/Milena/Where to Begin/Milena_Where_to_Begin[KTV人聲].m4a"
     },
     {
         "id": "4",
@@ -32,7 +30,6 @@
         "artist": "Lady Gaga",
         "videoUrl": "db/songs/Lady Gaga/Die With A Smile/Die_With_A_Smile[KTV字幕].mp4",
         "backingUrl": "db/songs/Lady Gaga/Die With A Smile/Die_With_A_Smile[KTV伴奏].m4a",
-        "vocalUrl": "db/songs/Lady Gaga/Die With A Smile/Die_With_A_Smile[KTV人聲].m4a",
-        "duration": 187
+        "vocalUrl": "db/songs/Lady Gaga/Die With A Smile/Die_With_A_Smile[KTV人聲].m4a"
     }
 ]
