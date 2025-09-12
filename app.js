@@ -1,137 +1,109 @@
-// ====== 基本狀態 ======
 const S = {
-  songs: [], // 歌曲資料庫
-  queue: [], // 佇列: [songId, ...]
-  currentIndex: -1, // 目前佇列索引
-  mode: "instrumental", // instrumental|vocal
-  offset: 0, // 固定為 0，不允許使用者調整
-  syncing: false,
-  masterVolume: 1, // 總音量（0..1）
+  songs: [],
+  queue: [],
+  currentIndex: -1,
+  mode: "instrumental",
+  masterVolume: 1,
 };
 
 const mv = document.getElementById("mv");
-const vocals = document.getElementById("vocals");
-const backing = document.getElementById("backing");
 const seek = document.getElementById("seek");
 const time = document.getElementById("time");
 const masterVol = document.getElementById("masterVol");
 const volLabel = document.getElementById("volLabel");
-
 const btnPlay = document.getElementById("btnPlay");
 const btnPause = document.getElementById("btnPause");
 const btnRestart = document.getElementById("btnRestart");
 const btnClear = document.getElementById("btnClear");
 const btnSearch = document.getElementById("btnSearch");
 const kw = document.getElementById("kw");
-const offsetMs = document.getElementById("offsetMs");
 const btnSkip = document.getElementById("btnSkip");
 
-// ====== 工具 ======
+let audioCtx;
+let gainNode;
+let currentAudioSource = null;
+let audioBufferCache = {};
+
+function initAudioContext() {
+  if (audioCtx) return;
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    gainNode = audioCtx.createGain();
+    gainNode.connect(audioCtx.destination);
+  } catch (e) {
+    console.error("Web Audio API is not supported in this browser");
+  }
+}
+
+function setupAudioUnlock() {
+  const unlockOverlay = document.getElementById("unlock-audio");
+  if (!unlockOverlay) return;
+  unlockOverlay.style.display = "flex";
+
+  const unlock = () => {
+    if (!audioCtx) initAudioContext();
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    const SILENT_VIDEO = "data:video/mp4;base64,AAAAHGZ0eXBNU05WAAACAE1TTlYAAAOUbW9vdgAAAGxtdmhkAAAAAAAAAAAAAAAAAAAAAADIAAAAAAAAIgAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAGGlvZHMAAAAAEwAACAEAAAcVYXBwbGUAAAAAbWV0YQAAAAAAAAAhaGRscgAAAAAAAAAAbWRpcmFwcGwAAAAAAAAAAAAAAAAtaWxzdAAAAAlpdG9vAAAAF2RhdGEAAAABAAAAAExvYXZhZmYxMS4zLjQAAAAAGnRyYWsAAABcdGtoZAAAAAEAAAAAAAAAAAAAAAEAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAIAAAAAAAACAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAFAAAAAAAQAAAAEAAG1kaWEAAAAgbWRoZAAAAAAAAAAAAAAAAAAAAAADIAAAAAAAAFXEAAAAAAAtaGRscgAAAAAAAAAAdmlkZQAAAAAAAAAAAAAAAFZpZGVvSGFuZGxlcgAAAAAAVm1pbmYAAAAUdm1oZAAAAAEAAAAAAAAAAAAAACRkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAx1cmwgAAAAAQAAABouc3RibAAAAHxzdHNkAAAAAAAAAAEAAABobXA0dgAAAAAAAAABAAAAAAAAAAAAAAACAAIAAgAAAAEAIAAABAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAMAAADMY29scgBGTEFYAAACAAEAAAAQcGFzcCAGAAAAAQAAAAEAAGJveHMAAAAAZmVhdAAAAAEAAAAAAAABAAAAAIAAAAAAABZzdHRsAAAAAAAAAAEAAAABAAACeAAAAAAcc3zcwAAAAAAAAABAAAAAQAAABxzdHNjAAAAAAAAAAEAAAABAAAAAQAAAAEAAAAcc3RzYwAAAAAAAAABAAAAAQAAAAEAAAABAAAAHHN0Y3oAAAAAAAAAEwAAAAEAAAAYAAAABQAAAAoAAAADAAAACgAAAAIAAAAKAAAABAAAAAkAAAADAAAACAAAAAIAAABZc3RzYQAAAAABAAAAAQAAAAEAAAABAAAAAABMdHJhawAAAFx1ZHRhAAAAWG1ldGEAAAAAAAAAIWhkbHIAAAAAAAAAAG1kaXJhcHBsAAAAAAAAAAAAAAAAAC1pbHN0AAAAAAlpdG9vAAAAF2RhdGEAAAABAAAAAExvYXZhZmYxMS4zLjQ=";
+    mv.src = SILENT_VIDEO;
+    mv.play().catch(() => { });
+    unlockOverlay.style.display = "none";
+    document.removeEventListener("click", unlock);
+    document.removeEventListener("touchend", unlock);
+  };
+
+  document.addEventListener("click", unlock, { once: true });
+  document.addEventListener("touchend", unlock, { once: true });
+}
+
 const fmt = (s) => {
   s = Math.max(0, Math.floor(s || 0));
   const m = String(Math.floor(s / 60)).padStart(2, "0");
   const ss = String(s % 60).padStart(2, "0");
   return `${m}:${ss}`;
 };
+
 function applyVolume() {
   const v = typeof S.masterVolume === "number" ? S.masterVolume : 1;
-  try {
-    backing.volume = v;
-    vocals.volume = v;
-    mv.volume = v;
-  } catch (e) {
-    console.error(e);
-  }
-  if (volLabel)
-    volLabel.textContent = `${String(Math.round(v * 100)).padStart(3, "0")}%`;
+  if (gainNode) gainNode.gain.setTargetAtTime(v, audioCtx.currentTime, 0.01);
+  if (volLabel) volLabel.textContent = `${String(Math.round(v * 100)).padStart(3, "0")}%`;
 }
 
 function applyMode() {
-  mv.muted = true;
-  if (S.mode === "instrumental") {
-    backing.muted = false;
-    vocals.muted = true;
-  } else if (S.mode === "vocal") {
-    backing.muted = true;
-    vocals.muted = false;
-  } else {
-    console.warn("未知的模式", S.mode);
-  }
-
-  if (!mv.paused) {
-    try {
-      if (Math.abs((vocals.currentTime || 0) - (mv.currentTime || 0)) > 0.05) {
-        backing.currentTime = mv.currentTime;
-        vocals.currentTime = mv.currentTime;
-      }
-      backing.play().catch(() => {});
-      vocals.play().catch(() => {});
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  for (const id of ["mode伴奏", "mode原唱"])
-    document.getElementById(id).classList.remove("muted");
-  const map = {
-    instrumental: "mode伴奏",
-    vocal: "mode原唱",
-  };
+  const song = S.songs.find(s => s.id === S.queue[S.currentIndex]);
+  if (!song) return;
+  const isInstrumental = S.mode === 'instrumental';
+  const urlToPlay = isInstrumental ? song.backingUrl : song.vocalUrl;
+  if (!mv.paused) playAudio(urlToPlay);
+  for (const id of ["mode伴奏", "mode原唱"]) document.getElementById(id).classList.remove("muted");
+  const map = { instrumental: "mode伴奏", vocal: "mode原唱" };
   document.getElementById(map[S.mode]).classList.add("muted");
-
-  applyVolume();
 }
 
 function loadSong(song) {
+  if (!audioCtx) initAudioContext();
   mv.src = song.videoUrl;
-  backing.src = song.backingUrl;
-  vocals.src = song.vocalUrl;
-  S.offset = 0;
-  mv.currentTime = 0;
-  backing.currentTime = 0;
-  vocals.currentTime = 0;
+  mv.load();
   applyMode();
 }
 
-async function playSync() {
-  try {
-    await mv.play();
-    const startVocals = () => vocals.play().catch(() => {});
-    const startBacking = () => backing.play().catch(() => {});
-    if (mv.readyState >= 2) {
-      startVocals();
-      startBacking();
-    } else {
-      mv.addEventListener("playing", startVocals, { once: true });
-      mv.addEventListener("playing", startBacking, { once: true });
-    }
-  } catch (e) {
-    console.error(e);
-  }
+function playSync() {
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  const wasPaused = mv.paused;
+  mv.play();
+  if (wasPaused) applyMode();
 }
 
 function pauseBoth() {
   mv.pause();
-  backing.pause();
-  vocals.pause();
+  if (audioCtx) audioCtx.suspend();
+  if (currentAudioSource) {
+    try { currentAudioSource.stop(); } catch (e) { }
+  }
 }
 
 function restartBoth() {
   mv.currentTime = 0;
-  backing.currentTime = mv.currentTime;
-  vocals.currentTime = mv.currentTime;
   playSync();
-}
-
-function tickSync() {
-  if (S.syncing) return;
-  S.syncing = true;
-  const drift = vocals.currentTime - mv.currentTime;
-  if (Math.abs(drift) > 0.05) {
-    backing.currentTime = mv.currentTime;
-    vocals.currentTime = mv.currentTime;
-  }
-  S.syncing = false;
 }
 
 function updateUI() {
@@ -144,75 +116,28 @@ function updateUI() {
   }
   requestAnimationFrame(updateUI);
 }
-requestAnimationFrame(updateUI);
 
-mv.addEventListener("timeupdate", tickSync);
-mv.addEventListener("seeking", () => {
-  backing.currentTime = mv.currentTime;
-  vocals.currentTime = mv.currentTime;
-});
-
-seek.addEventListener("input", () => {
+function handleSeek() {
+  const wasPlaying = !mv.paused;
+  if (wasPlaying) pauseBoth();
   mv.currentTime = parseFloat(seek.value) || 0;
-  backing.currentTime = mv.currentTime;
-  vocals.currentTime = mv.currentTime;
-});
-
-btnPlay.onclick = playSync;
-btnPause.onclick = pauseBoth;
-btnRestart.onclick = restartBoth;
-document.getElementById("mode伴奏").onclick = () => {
-  S.mode = "instrumental";
-  applyMode();
-};
-document.getElementById("mode原唱").onclick = () => {
-  S.mode = "vocal";
-  applyMode();
-};
-
-btnSkip.onclick = () => {
-  try {
-    mv.pause();
-  } catch (e) {}
-  handleEnded();
-};
+  if (wasPlaying) playSync();
+}
 
 function handleEnded() {
   const idx = S.currentIndex;
   if (idx === -1) return;
-
   S.queue.splice(idx, 1);
-
   if (S.queue.length === 0) {
     S.currentIndex = -1;
     pauseBoth();
-
-    try {
-      mv.src = "";
-      mv.load();
-      backing.src = "";
-      backing.load();
-      vocals.src = "";
-      vocals.load();
-    } catch (e) {
-      console.error("清除媒體來源失敗", e);
-    }
+    try { mv.src = ""; mv.load(); } catch (e) { }
   } else {
-    if (idx >= S.queue.length) S.currentIndex = S.queue.length - 1;
-    else S.currentIndex = idx;
+    S.currentIndex = idx >= S.queue.length ? S.queue.length - 1 : idx;
     playCurrent();
   }
   renderQueue();
 }
-
-mv.addEventListener("ended", handleEnded);
-
-btnClear.onclick = () => {
-  S.queue.length = 0;
-  S.currentIndex = -1;
-  renderQueue();
-  pauseBoth();
-};
 
 function playCurrent() {
   const id = S.queue[S.currentIndex];
@@ -223,13 +148,74 @@ function playCurrent() {
   renderQueue();
 }
 
-function enqueue(id) {
-  S.queue.push(id);
-  if (S.currentIndex === -1) {
-    S.currentIndex = 0;
-    playCurrent();
+function showLoading(show) {
+  const overlay = document.getElementById("loading-overlay");
+  overlay.style.display = show ? "flex" : "none";
+}
+
+async function loadAudioBuffer(url) {
+  if (audioBufferCache[url]) return audioBufferCache[url];
+  const progress = document.getElementById("loading-progress");
+  progress.value = 0;
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+  const reader = response.body.getReader();
+  const contentLength = +response.headers.get('Content-Length');
+  let receivedLength = 0;
+  let chunks = [];
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    receivedLength += value.length;
+    if (contentLength) progress.value = (receivedLength / contentLength) * 100;
   }
-  renderQueue();
+  let chunksAll = new Uint8Array(receivedLength);
+  let position = 0;
+  for (let chunk of chunks) {
+    chunksAll.set(chunk, position);
+    position += chunk.length;
+  }
+  const buffer = await audioCtx.decodeAudioData(chunksAll.buffer);
+  audioBufferCache[url] = buffer;
+  return buffer;
+}
+
+async function enqueue(id) {
+  const song = S.songs.find(s => s.id === id);
+  if (!song) return;
+  showLoading(true);
+  try {
+    await Promise.all([loadAudioBuffer(song.backingUrl), loadAudioBuffer(song.vocalUrl)]);
+    S.queue.push(id);
+    if (S.currentIndex === -1) {
+      S.currentIndex = 0;
+      playCurrent();
+    }
+    renderQueue();
+  } catch (error) {
+    console.error("預載歌曲失敗:", error);
+    alert("歌曲載入失敗，請檢查網路或檔案路徑。");
+  } finally {
+    showLoading(false);
+  }
+}
+
+async function playAudio(url) {
+  if (currentAudioSource) {
+    try { currentAudioSource.stop(); } catch (e) { }
+  }
+  if (!url) return;
+  try {
+    const buffer = await loadAudioBuffer(url);
+    const source = audioCtx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(gainNode);
+    source.start(0, mv.currentTime);
+    currentAudioSource = source;
+  } catch (e) {
+    console.error('播放音訊時發生錯誤:', e);
+  }
 }
 
 function removeAt(idx) {
@@ -272,19 +258,14 @@ function renderQueue() {
     const s = S.songs.find((x) => x.id === id);
     const li = document.createElement("li");
     const isCurrent = i === S.currentIndex;
-    const label = `<span>${i + 1}. ${isCurrent ? "正在撥放▶︎ " : ""}${
-      s?.title || id
-    } - ${s?.artist || ""}</span>`;
-
+    const label = `<span>${i + 1}. ${isCurrent ? "正在撥放▶︎ " : ""}${s?.title || id} - ${s?.artist || ""}</span>`;
     const controls = document.createElement("span");
     if (!isCurrent) {
       const ins = document.createElement("button");
       ins.textContent = "插播";
       ins.dataset.i = String(i);
       ins.className = "insert";
-      ins.onclick = (e) => {
-        insertAfterCurrent(parseInt(e.target.dataset.i, 10));
-      };
+      ins.onclick = (e) => insertAfterCurrent(parseInt(e.target.dataset.i, 10));
       controls.appendChild(ins);
     }
     const del = document.createElement("button");
@@ -293,7 +274,6 @@ function renderQueue() {
     del.className = "del";
     del.onclick = (e) => removeAt(parseInt(e.target.dataset.i, 10));
     controls.appendChild(del);
-
     li.innerHTML = label;
     li.appendChild(controls);
     box.appendChild(li);
@@ -305,25 +285,17 @@ async function loadDB() {
   S.songs = await res.json();
   renderResults(S.songs);
 }
+
 function renderResults(list) {
   const panel = document.getElementById("results");
   panel.innerHTML = "";
-
   const table = document.createElement("table");
   table.style.width = "100%";
   table.style.borderCollapse = "collapse";
-
   const thead = document.createElement("thead");
-  thead.innerHTML = `<tr>
-    <th style="text-align:left;padding:6px;border-bottom:1px solid #333">編號</th>
-    <th style="text-align:left;padding:6px;border-bottom:1px solid #333">歌手</th>
-    <th style="text-align:left;padding:6px;border-bottom:1px solid #333">歌名</th>
-    <th style="text-align:center;padding:6px;border-bottom:1px solid #333">點歌</th>
-  </tr>`;
+  thead.innerHTML = `<tr><th style="text-align:left;padding:6px;border-bottom:1px solid #333">編號</th><th style="text-align:left;padding:6px;border-bottom:1px solid #333">歌手</th><th style="text-align:left;padding:6px;border-bottom:1px solid #333">歌名</th><th style="text-align:center;padding:6px;border-bottom:1px solid #333">點歌</th></tr>`;
   table.appendChild(thead);
-
   const tbody = document.createElement("tbody");
-
   if (!list || list.length === 0) {
     const tr = document.createElement("tr");
     const td = document.createElement("td");
@@ -335,33 +307,20 @@ function renderResults(list) {
   } else {
     list.forEach((s) => {
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td style="padding:6px;border-bottom:1px dashed #333">${
-        s.id
-      }</td>
-        <td style="padding:6px;border-bottom:1px dashed #333">${
-          s.artist || ""
-        }</td>
-        <td style="padding:6px;border-bottom:1px dashed #333">${
-          s.title || ""
-        }</td>
-        <td style="padding:6px;border-bottom:1px dashed #333;text-align:center">
-          <button data-id="${s.id}">點歌</button>
-        </td>`;
+      tr.innerHTML = `<td style="padding:6px;border-bottom:1px dashed #333">${s.id}</td><td style="padding:6px;border-bottom:1px dashed #333">${s.artist || ""}</td><td style="padding:6px;border-bottom:1px dashed #333">${s.title || ""}</td><td style="padding:6px;border-bottom:1px dashed #333;text-align:center"><button data-id="${s.id}">點歌</button></td>`;
       tbody.appendChild(tr);
     });
     tbody.querySelectorAll("button").forEach((b) => {
       b.onclick = () => enqueue(b.dataset.id);
     });
   }
-
   table.appendChild(tbody);
   panel.appendChild(table);
 }
+
 btnSearch.onclick = () => {
   const k = kw.value.trim().toLowerCase();
-  const list = S.songs.filter((s) =>
-    (s.title + s.artist).toLowerCase().includes(k)
-  );
+  const list = S.songs.filter((s) => (s.title + s.artist).toLowerCase().includes(k));
   renderResults(list);
 };
 
@@ -380,14 +339,22 @@ if (masterVol) {
 function detectMobileLayout() {
   const ua = navigator.userAgent || "";
   const isMobileUA = /Mobi|Android|iPhone|iPad|iPod|Windows Phone/i.test(ua);
-  const isTouch =
-    "ontouchstart" in window ||
-    (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) ||
-    (window.matchMedia && window.matchMedia("(pointer:coarse)").matches);
+  const isTouch = "ontouchstart" in window || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) || (window.matchMedia && window.matchMedia("(pointer:coarse)").matches);
   const isMobile = isMobileUA || isTouch;
   document.body.classList.toggle("mobile", !!isMobile);
 }
+
+requestAnimationFrame(updateUI);
+seek.addEventListener('input', handleSeek);
+btnPlay.onclick = playSync;
+btnPause.onclick = pauseBoth;
+btnRestart.onclick = restartBoth;
+document.getElementById("mode伴奏").onclick = () => { S.mode = "instrumental"; applyMode(); };
+document.getElementById("mode原唱").onclick = () => { S.mode = "vocal"; applyMode(); };
+btnSkip.onclick = () => { try { mv.pause(); } catch (e) { } handleEnded(); };
+mv.addEventListener("ended", handleEnded);
+btnClear.onclick = () => { S.queue.length = 0; S.currentIndex = -1; renderQueue(); pauseBoth(); };
 detectMobileLayout();
 window.addEventListener("resize", detectMobileLayout);
-
 loadDB();
+setupAudioUnlock();
