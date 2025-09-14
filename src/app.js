@@ -23,6 +23,8 @@ let audioCtx;
 let gainNode;
 let currentAudioSource = null;
 let audioBufferCache = {};
+let audioStartTime = 0;
+let videoStartTime = 0;
 
 function initAudioContext() {
   if (audioCtx) return;
@@ -87,10 +89,21 @@ function loadSong(song) {
 }
 
 function playSync() {
-  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-  const wasPaused = mv.paused;
-  mv.play();
-  if (wasPaused) applyMode();
+  if (audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume().then(() => {
+      const wasPaused = mv.paused;
+      mv.play();
+      if (wasPaused) {
+        applyMode();
+      }
+    });
+  } else {
+    const wasPaused = mv.paused;
+    mv.play();
+    if (wasPaused) {
+      applyMode();
+    }
+  }
 }
 
 function pauseBoth() {
@@ -205,13 +218,18 @@ async function playAudio(url) {
   if (currentAudioSource) {
     try { currentAudioSource.stop(); } catch (e) { }
   }
-  if (!url) return;
+  if (!url || !audioCtx) return;
+
   try {
     const buffer = await loadAudioBuffer(url);
     const source = audioCtx.createBufferSource();
     source.buffer = buffer;
     source.connect(gainNode);
-    source.start(0, mv.currentTime);
+
+    audioStartTime = audioCtx.currentTime;
+    videoStartTime = mv.currentTime;
+
+    source.start(audioStartTime, videoStartTime);
     currentAudioSource = source;
   } catch (e) {
     console.error('播放音訊時發生錯誤:', e);
