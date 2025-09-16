@@ -6,7 +6,8 @@
         "videoUrl": "db/songs/Milena/why do we fall in love/Milena_why_do_we_fall_in_love[KTV字幕].mp4",
         "backingUrl": "db/songs/Milena/why do we fall in love/Milena_why_do_we_fall_in_love[KTV伴奏].m4a",
         "vocalUrl": "db/songs/Milena/why do we fall in love/Milena_why_do_we_fall_in_love[KTV人聲].m4a",
-        "duration": 187
+        "hlsUrl": "db/songs/Milena/why do we fall in love/hls/master.m3u8",
+        "duration": 1
     },
     {
         "id": "2",
@@ -14,7 +15,9 @@
         "artist": "Milena",
         "videoUrl": "db/songs/Milena/Foot on the Moon/Milena_Foot_on_the_Moon[KTV字幕].mp4",
         "backingUrl": "db/songs/Milena/Foot on the Moon/Milena_Foot_on_the_Moon[KTV伴奏].m4a",
-        "vocalUrl": "db/songs/Milena/Foot on the Moon/Milena_Foot_on_the_Moon[KTV人聲].m4a"
+        "vocalUrl": "db/songs/Milena/Foot on the Moon/Milena_Foot_on_the_Moon[KTV人聲].m4a",
+        "hlsUrl": "db/songs/Milena/Foot on the Moon/hls/master.m3u8",
+        "duration": 1
     },
     {
         "id": "3",
@@ -22,7 +25,9 @@
         "artist": "Milena",
         "videoUrl": "db/songs/Milena/Where to Begin/Milena_Where_to_Begin[KTV字幕].mp4",
         "backingUrl": "db/songs/Milena/Where to Begin/Milena_Where_to_Begin[KTV伴奏].m4a",
-        "vocalUrl": "db/songs/Milena/Where to Begin/Milena_Where_to_Begin[KTV人聲].m4a"
+        "vocalUrl": "db/songs/Milena/Where to Begin/Milena_Where_to_Begin[KTV人聲].m4a",
+        "hlsUrl": "db/songs/Milena/Where to Begin/hls/master.m3u8",
+        "duration": 1
     },
     {
         "id": "4",
@@ -30,6 +35,8 @@
         "artist": "Lady Gaga",
         "videoUrl": "db/songs/Lady Gaga/Die With A Smile/Die_With_A_Smile[KTV字幕].mp4",
         "backingUrl": "db/songs/Lady Gaga/Die With A Smile/Die_With_A_Smile[KTV伴奏].m4a",
-        "vocalUrl": "db/songs/Lady Gaga/Die With A Smile/Die_With_A_Smile[KTV人聲].m4a"
+        "vocalUrl": "db/songs/Lady Gaga/Die With A Smile/Die_With_A_Smile[KTV人聲].m4a",
+        "hlsUrl": "db/songs/Lady Gaga/Die With A Smile/hls/master.m3u8",
+        "duration": 1
     }
 ]
