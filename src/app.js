@@ -74,7 +74,7 @@ function applyMode() {
   const song = S.songs.find(s => s.id === S.queue[S.currentIndex]);
   if (!song) return;
   const isInstrumental = S.mode === 'instrumental';
-  const urlToPlay = isInstrumental ? song.backingUrl : song.vocalUrl;
+  const urlToPlay = isInstrumental ? (song.rootUrl + song.backingUrl) : (song.rootUrl + song.vocalUrl);
   if (!mv.paused) playAudio(urlToPlay);
   for (const id of ["mode伴奏", "mode原唱"]) document.getElementById(id).classList.remove("muted");
   const map = { instrumental: "mode伴奏", vocal: "mode原唱" };
@@ -83,7 +83,7 @@ function applyMode() {
 
 function loadSong(song) {
   if (!audioCtx) initAudioContext();
-  mv.src = song.videoUrl;
+  mv.src = song.rootUrl + song.videoUrl;
   mv.load();
   applyMode();
 }
@@ -163,13 +163,13 @@ function playCurrent() {
 
 function showLoading(show) {
   const overlay = document.getElementById("loading-overlay");
-  overlay.style.display = show ? "flex" : "none";
+  if (overlay) overlay.style.display = show ? "flex" : "none";
 }
 
 async function loadAudioBuffer(url) {
   if (audioBufferCache[url]) return audioBufferCache[url];
   const progress = document.getElementById("loading-progress");
-  progress.value = 0;
+  if (progress) progress.value = 0;
   const response = await fetch(url);
   if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
   const reader = response.body.getReader();
@@ -181,7 +181,7 @@ async function loadAudioBuffer(url) {
     if (done) break;
     chunks.push(value);
     receivedLength += value.length;
-    if (contentLength) progress.value = (receivedLength / contentLength) * 100;
+    if (contentLength && progress) progress.value = (receivedLength / contentLength) * 100;
   }
   let chunksAll = new Uint8Array(receivedLength);
   let position = 0;
@@ -199,7 +199,9 @@ async function enqueue(id) {
   if (!song) return;
   showLoading(true);
   try {
-    await Promise.all([loadAudioBuffer(song.backingUrl), loadAudioBuffer(song.vocalUrl)]);
+    const backingFullUrl = song.rootUrl + song.backingUrl;
+    const vocalFullUrl = song.rootUrl + song.vocalUrl;
+    await Promise.all([loadAudioBuffer(backingFullUrl), loadAudioBuffer(vocalFullUrl)]);
     S.queue.push(id);
     if (S.currentIndex === -1) {
       S.currentIndex = 0;
@@ -225,10 +227,8 @@ async function playAudio(url) {
     const source = audioCtx.createBufferSource();
     source.buffer = buffer;
     source.connect(gainNode);
-
     audioStartTime = audioCtx.currentTime;
     videoStartTime = mv.currentTime;
-
     source.start(audioStartTime, videoStartTime);
     currentAudioSource = source;
   } catch (e) {
@@ -362,6 +362,23 @@ function detectMobileLayout() {
   document.body.classList.toggle("mobile", !!isMobile);
 }
 
+function visibilityChangeHandler() {
+  if (document.hidden) {
+    return;
+  }
+
+  if (!audioCtx || mv.paused || !currentAudioSource) {
+    return;
+  }
+
+  const elapsedAudioTime = audioCtx.currentTime - audioStartTime;
+  const correctVideoTime = videoStartTime + elapsedAudioTime;
+
+  if (Math.abs(mv.currentTime - correctVideoTime) > 0.5) {
+    mv.currentTime = correctVideoTime;
+  }
+}
+
 requestAnimationFrame(updateUI);
 seek.addEventListener('input', handleSeek);
 btnPlay.onclick = playSync;
@@ -372,6 +389,7 @@ document.getElementById("mode原唱").onclick = () => { S.mode = "vocal"; applyM
 btnSkip.onclick = () => { try { mv.pause(); } catch (e) { } handleEnded(); };
 mv.addEventListener("ended", handleEnded);
 btnClear.onclick = () => { S.queue.length = 0; S.currentIndex = -1; renderQueue(); pauseBoth(); };
+document.addEventListener("visibilitychange", visibilityChangeHandler);
 detectMobileLayout();
 window.addEventListener("resize", detectMobileLayout);
 loadDB();
