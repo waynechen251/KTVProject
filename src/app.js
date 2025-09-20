@@ -227,7 +227,7 @@ function renderQueue() {
 }
 
 async function loadDB() {
-  const res = await fetch("songs.json");
+  const res = await fetch("config/songs.json");
   S.songs = await res.json();
   renderResults(S.songs);
 }

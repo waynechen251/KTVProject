@@ -6,4 +6,5 @@ services:
       - "8080:80"
     volumes:
       - ./db:/usr/share/nginx/html/db:ro
+      - ./src/config:/usr/share/nginx/html/config:ro
     restart: unless-stopped

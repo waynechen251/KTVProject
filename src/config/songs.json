@@ -1,9 +1,9 @@
 ﻿[
     {
         "id": "1",
-        "title": "why do we fall in love",
+        "title": "why do we fall in love?",
         "artist": "Milena",
-        "rootUrl": "db/songs/Milena/why_do_we_fall_in_love/",
+        "rootUrl": "db/songs/milena/why_do_we_fall_in_love/",
         "videoUrl": "mv.mp4",
         "backingUrl": "backing.m4a",
         "vocalUrl": "vocal.m4a",
@@ -14,7 +14,7 @@
         "id": "2",
         "title": "Foot on the Moon",
         "artist": "Milena",
-        "rootUrl": "db/songs/Milena/foot_on_the_moon/",
+        "rootUrl": "db/songs/milena/foot_on_the_moon/",
         "videoUrl": "mv.mp4",
         "backingUrl": "backing.m4a",
         "vocalUrl": "vocal.m4a",
@@ -25,7 +25,7 @@
         "id": "3",
         "title": "Where to Begin",
         "artist": "Milena",
-        "rootUrl": "db/songs/Milena/where_to_begin/",
+        "rootUrl": "db/songs/milena/where_to_begin/",
         "videoUrl": "mv.mp4",
         "backingUrl": "backing.m4a",
         "vocalUrl": "vocal.m4a",
@@ -36,11 +36,22 @@
         "id": "4",
         "title": "Die With A Smile",
         "artist": "Lady Gaga",
-        "rootUrl": "db/songs/Lady_Gaga/die_with_a_smile/",
+        "rootUrl": "db/songs/lady_gaga/die_with_a_smile/",
         "videoUrl": "mv.mp4",
         "backingUrl": "backing.m4a",
         "vocalUrl": "vocal.m4a",
         "hlsUrl": "hls/master.m3u8",
         "duration": 253
+    },
+    {
+        "id": "5",
+        "title": "CHIHIRO",
+        "artist": "Billie Eilish",
+        "rootUrl": "db/songs/billie_eilish/chihiro/",
+        "videoUrl": "mv.mp4",
+        "backingUrl": "backing.m4a",
+        "vocalUrl": "vocal.m4a",
+        "hlsUrl": "hls/master.m3u8",
+        "duration": 309
     }
 ]
