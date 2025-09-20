@@ -99,15 +99,18 @@ function loadSong(song) {
 
 function playSync() {
   mv.play();
+  updatePlayPauseButton();
 }
 
 function pauseBoth() {
   mv.pause();
+  updatePlayPauseButton();
 }
 
 function restartBoth() {
   mv.currentTime = 0;
   mv.play();
+  updatePlayPauseButton();
 }
 
 function updateUI() {
@@ -271,8 +274,18 @@ function detectMobileLayout() {
 
 function initEventListeners() {
   seek.addEventListener('input', handleSeek);
-  btnPlay.onclick = playSync;
-  btnPause.onclick = pauseBoth;
+
+  const btnPlayPause = document.getElementById("btnPlayPause");
+  if (btnPlayPause) {
+    btnPlayPause.onclick = () => {
+      if (mv.paused) {
+        playSync();
+      } else {
+        pauseBoth();
+      }
+    };
+  }
+
   btnRestart.onclick = restartBoth;
   btnSkip.onclick = () => {
     try { mv.pause(); } catch (e) { }
@@ -314,6 +327,16 @@ function initEventListeners() {
   mv.addEventListener("ended", handleEnded);
   window.addEventListener("resize", detectMobileLayout);
 }
+
+function updatePlayPauseButton() {
+  const btnPlayPause = document.getElementById("btnPlayPause");
+  if (btnPlayPause) {
+    btnPlayPause.textContent = mv.paused ? '播放' : '暫停';
+  }
+}
+
+mv.addEventListener('play', updatePlayPauseButton);
+mv.addEventListener('pause', updatePlayPauseButton);
 
 requestAnimationFrame(updateUI);
 detectMobileLayout();

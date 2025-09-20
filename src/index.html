@@ -1,61 +1,106 @@
 <!DOCTYPE html>
+<html lang="zh-TW">
 
 <head>
   <meta charset="utf-8" />
   <title>Mini KTV</title>
-  <script src="https://cdn.jsdelivr.net/npm/vconsole@latest/dist/vconsole.min.js"></script>
-  <script>
-    var vConsole = new VConsole();
-  </script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <link rel="stylesheet" href="styles.css" />
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 </head>
 
 <body>
-  <div id="stage" class="panel">
-    <video id="mv" playsinline preload="auto"></video>
+  <div class="container">
+    <div id="stage" class="panel">
+      <video id="mv" playsinline preload="auto"></video>
+    </div>
+
+    <div class="bottom-panels">
+      <div class="panel-tabs">
+        <button class="tab-btn active" data-tab="controls">遙控器</button>
+        <button class="tab-btn" data-tab="songs">點歌</button>
+      </div>
+
+      <div id="controls-panel" class="panel-content active">
+        <div class="panel">
+          <div class="btn-grid">
+            <button id="btnPlayPause">播放</button>
+            <button id="btnRestart">重唱</button>
+            <button id="btnSkip">切歌</button>
+          </div>
+
+          <div class="control-row">
+            <span class="label">模式</span>
+            <div class="seg">
+              <button id="mode伴奏" data-mode="instrumental" class="seg-btn active">伴奏</button>
+              <button id="mode原唱" data-mode="vocal" class="seg-btn">原唱</button>
+            </div>
+          </div>
+
+          <div class="control-row">
+            <span class="label">音量</span>
+            <input id="masterVol" type="range" min="0" max="1" step="0.01" value="1" />
+            <span id="volLabel" class="value-display">100%</span>
+          </div>
+
+          <div class="control-row">
+            <span class="label">進度</span>
+            <input id="seek" type="range" min="0" max="100" step="0.1" value="0" />
+            <span id="time" class="value-display">00:00 / 00:00</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="songs-panel" class="panel-content">
+        <div class="panel">
+          <h3>搜尋</h3>
+          <div class="search-container">
+            <input id="kw" placeholder="搜尋歌名或歌手…" inputmode="search" />
+            <button id="btnSearch">搜尋</button>
+          </div>
+          <div id="results" class="results-grid"></div>
+        </div>
+
+        <div class="panel">
+          <h3>待播歌曲 <span class="muted">剩 <span id="queueCount">0</span> 首</span></h3>
+          <div class="queue-controls">
+            <button id="btnClear">清空佇列</button>
+          </div>
+          <ol id="queue" class="queue"></ol>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div id="right">
-    <div class="panel" id="controls">
-      <div class="row">
-        <button id="btnPlay">播放</button>
-        <button id="btnPause">暫停</button>
-        <button id="btnRestart">重唱</button>
-        <button id="btnSkip">切歌</button>
-      </div>
-      <div class="row" style="margin-top: 8px">
-        <span>模式：</span>
-        <button id="mode伴奏" data-mode="instrumental">伴奏</button>
-        <button id="mode原唱" data-mode="vocal">原唱</button>
-      </div>
-      <div class="row" style="margin-top: 8px; align-items: center">
-        <input id="masterVol" type="range" min="0" max="1" step="0.01" value="1" style="flex: 1" />
-        <label for="masterVol">總音量</label>
-        <span id="volLabel">100%</span>
-      </div>
-      <div class="row" style="margin-top: 8px; align-items: center">
-        <input id="seek" type="range" min="0" max="100" step="0.1" value="0" class="grow" style="flex: 1" />
-        <span id="time">00:00 / 00:00</span>
-      </div>
-    </div>
-    <div class="panel">
-      <div class="row">
-        <input id="kw" class="grow" placeholder="搜尋歌名或歌手…" />
-        <button id="btnSearch">搜尋</button>
-      </div>
-      <div id="results" class="row" style="margin-top: 8px; flex-direction: column; gap: 6px"></div>
-    </div>
-    <div class="panel queue">
-      <div class="row" style="justify-content: space-between">
-        <strong>待播歌曲(剩 <span id="queueCount">0</span> 首)</strong>
-        <button id="btnClear">清空佇列</button>
-      </div>
-      <ol id="queue"></ol>
-    </div>
-    <script src="app.js" defer></script>
+  <div class="vconsole-wrapper">
+    <script src="https://cdn.jsdelivr.net/npm/vconsole@latest/dist/vconsole.min.js"></script>
+    <script>
+      var vConsole = new VConsole();
+    </script>
   </div>
+
+  <script src="app.js" defer></script>
+  <script>
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tabName = btn.dataset.tab;
+
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.panel-content').forEach(p => p.classList.remove('active'));
+
+        btn.classList.add('active');
+        document.getElementById(tabName + '-panel').classList.add('active');
+      });
+    });
+
+    document.querySelectorAll('.seg-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const parent = btn.parentElement;
+        parent.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+  </script>
 </body>
 
 </html>
