@@ -19,6 +19,7 @@ const btnSearch = document.getElementById("btnSearch");
 const kw = document.getElementById("kw");
 const btnSkip = document.getElementById("btnSkip");
 let hls = null;
+let isInteracted = false;
 
 const fmt = (s) => {
   s = Math.max(0, Math.floor(s || 0));
@@ -148,6 +149,12 @@ function playCurrent() {
 }
 
 function enqueue(id) {
+  if (!isInteracted) {
+    mv.play().catch(() => { });
+    mv.pause();
+    isInteracted = true;
+  }
+
   S.queue.push(id);
   if (S.currentIndex === -1) {
     S.currentIndex = 0;

@@ -42,16 +42,5 @@
         "vocalUrl": "vocal.m4a",
         "hlsUrl": "hls/master.m3u8",
         "duration": 253
-    },
-    {
-        "id": "5",
-        "title": "Sante?",
-        "artist": "Whyte",
-        "rootUrl": "db/songs/Whyte/Sante?/",
-        "videoUrl": "mv.mp4",
-        "backingUrl": "backing.m4a",
-        "vocalUrl": "vocal.m4a",
-        "hlsUrl": "hls/master.m3u8",
-        "duration": 1
     }
 ]
