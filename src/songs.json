@@ -8,7 +8,7 @@
         "backingUrl": "music.m4a",
         "vocalUrl": "voice.m4a",
         "hlsUrl": "master.m3u8",
-        "duration": 1
+        "duration": 187
     },
     {
         "id": "2",
@@ -19,7 +19,7 @@
         "backingUrl": "music.m4a",
         "vocalUrl": "voice.m4a",
         "hlsUrl": "master.m3u8",
-        "duration": 1
+        "duration": 205
     },
     {
         "id": "3",
@@ -30,7 +30,7 @@
         "backingUrl": "music.m4a",
         "vocalUrl": "voice.m4a",
         "hlsUrl": "master.m3u8",
-        "duration": 1
+        "duration": 170
     },
     {
         "id": "4",
@@ -41,7 +41,7 @@
         "backingUrl": "music.m4a",
         "vocalUrl": "voice.m4a",
         "hlsUrl": "master.m3u8",
-        "duration": 1
+        "duration": 253
     },
     {
         "id": "5",
