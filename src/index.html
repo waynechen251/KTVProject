@@ -5,11 +5,12 @@
   <title>Mini KTV</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 </head>
 
 <body>
   <div id="stage" class="panel">
-    <video id="mv" playsinline preload="auto" muted></video>
+    <video id="mv" playsinline preload="auto"></video>
   </div>
 
   <div id="right">
@@ -24,54 +25,33 @@
         <span>模式：</span>
         <button id="mode伴奏" data-mode="instrumental">伴奏</button>
         <button id="mode原唱" data-mode="vocal">原唱</button>
-        <input hidden id="offsetMs" type="number" value="0" style="width: 90px" disabled title="同步由系統自動管理，不允許手動調整" />
       </div>
-
       <div class="row" style="margin-top: 8px; align-items: center">
         <input id="masterVol" type="range" min="0" max="1" step="0.01" value="1" style="flex: 1" />
         <label for="masterVol">總音量</label>
         <span id="volLabel">100%</span>
       </div>
-
       <div class="row" style="margin-top: 8px; align-items: center">
         <input id="seek" type="range" min="0" max="100" step="0.1" value="0" class="grow" style="flex: 1" />
         <span id="time">00:00 / 00:00</span>
       </div>
-
-      <div class="panel">
-        <div class="row">
-          <input id="kw" class="grow" placeholder="搜尋歌名或歌手…" />
-          <button id="btnSearch">搜尋</button>
-        </div>
-        <div id="results" class="row" style="margin-top: 8px; flex-direction: column; gap: 6px"></div>
-      </div>
-
-      <div class="panel queue">
-        <div class="row" style="justify-content: space-between">
-          <strong>待撥歌曲(剩 <span id="queueCount">0</span> 首)</strong>
-          <button id="btnClear">清空佇列</button>
-        </div>
-        <ol id="queue"></ol>
-      </div>
     </div>
-
+    <div class="panel">
+      <div class="row">
+        <input id="kw" class="grow" placeholder="搜尋歌名或歌手…" />
+        <button id="btnSearch">搜尋</button>
+      </div>
+      <div id="results" class="row" style="margin-top: 8px; flex-direction: column; gap: 6px"></div>
+    </div>
+    <div class="panel queue">
+      <div class="row" style="justify-content: space-between">
+        <strong>待播歌曲(剩 <span id="queueCount">0</span> 首)</strong>
+        <button id="btnClear">清空佇列</button>
+      </div>
+      <ol id="queue"></ol>
+    </div>
     <script src="app.js" defer></script>
   </div>
-
-  <div id="loading-overlay">
-    <div id="loading-box">
-      <p>歌曲載入中...</p>
-      <progress id="loading-progress" value="0" max="100"></progress>
-    </div>
-  </div>
-
-  <div id="unlock-audio">
-    <div id="unlock-box">
-      <h1>Mini KTV</h1>
-      <p>點擊螢幕任何地方開始</p>
-    </div>
-  </div>
-
 </body>
 
 </html>

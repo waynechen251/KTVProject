@@ -1,13 +1,13 @@
-[
+﻿[
     {
         "id": "1",
         "title": "why do we fall in love",
         "artist": "Milena",
         "rootUrl": "db/songs/Milena/why_do_we_fall_in_love/",
         "videoUrl": "mv.mp4",
-        "backingUrl": "music.m4a",
-        "vocalUrl": "voice.m4a",
-        "hlsUrl": "master.m3u8",
+        "backingUrl": "backing.m4a",
+        "vocalUrl": "vocal.m4a",
+        "hlsUrl": "hls/master.m3u8",
         "duration": 187
     },
     {
@@ -16,9 +16,9 @@
         "artist": "Milena",
         "rootUrl": "db/songs/Milena/foot_on_the_moon/",
         "videoUrl": "mv.mp4",
-        "backingUrl": "music.m4a",
-        "vocalUrl": "voice.m4a",
-        "hlsUrl": "master.m3u8",
+        "backingUrl": "backing.m4a",
+        "vocalUrl": "vocal.m4a",
+        "hlsUrl": "hls/master.m3u8",
         "duration": 205
     },
     {
@@ -27,9 +27,9 @@
         "artist": "Milena",
         "rootUrl": "db/songs/Milena/where_to_begin/",
         "videoUrl": "mv.mp4",
-        "backingUrl": "music.m4a",
-        "vocalUrl": "voice.m4a",
-        "hlsUrl": "master.m3u8",
+        "backingUrl": "backing.m4a",
+        "vocalUrl": "vocal.m4a",
+        "hlsUrl": "hls/master.m3u8",
         "duration": 170
     },
     {
@@ -38,20 +38,20 @@
         "artist": "Lady Gaga",
         "rootUrl": "db/songs/Lady_Gaga/die_with_a_smile/",
         "videoUrl": "mv.mp4",
-        "backingUrl": "music.m4a",
-        "vocalUrl": "voice.m4a",
-        "hlsUrl": "master.m3u8",
+        "backingUrl": "backing.m4a",
+        "vocalUrl": "vocal.m4a",
+        "hlsUrl": "hls/master.m3u8",
         "duration": 253
     },
     {
         "id": "5",
-        "title": "Santé",
-        "artist": "壞特",
-        "rootUrl": "db/songs/壞特/Santé/",
+        "title": "Sante?",
+        "artist": "Whyte",
+        "rootUrl": "db/songs/Whyte/Sante?/",
         "videoUrl": "mv.mp4",
-        "backingUrl": "music.m4a",
-        "vocalUrl": "voice.m4a",
-        "hlsUrl": "master.m3u8",
+        "backingUrl": "backing.m4a",
+        "vocalUrl": "vocal.m4a",
+        "hlsUrl": "hls/master.m3u8",
         "duration": 1
     }
 ]

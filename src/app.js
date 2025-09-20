@@ -18,44 +18,7 @@ const btnClear = document.getElementById("btnClear");
 const btnSearch = document.getElementById("btnSearch");
 const kw = document.getElementById("kw");
 const btnSkip = document.getElementById("btnSkip");
-
-let audioCtx;
-let gainNode;
-let currentAudioSource = null;
-let audioBufferCache = {};
-let audioStartTime = 0;
-let videoStartTime = 0;
-
-function initAudioContext() {
-  if (audioCtx) return;
-  try {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    gainNode = audioCtx.createGain();
-    gainNode.connect(audioCtx.destination);
-  } catch (e) {
-    console.error("Web Audio API is not supported in this browser");
-  }
-}
-
-function setupAudioUnlock() {
-  const unlockOverlay = document.getElementById("unlock-audio");
-  if (!unlockOverlay) return;
-  unlockOverlay.style.display = "flex";
-
-  const unlock = () => {
-    if (!audioCtx) initAudioContext();
-    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-    const SILENT_VIDEO = "data:video/mp4;base64,AAAAHGZ0eXBNU05WAAACAE1TTlYAAAOUbW9vdgAAAGxtdmhkAAAAAAAAAAAAAAAAAAAAAADIAAAAAAAAIgAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAGGlvZHMAAAAAEwAACAEAAAcVYXBwbGUAAAAAbWV0YQAAAAAAAAAhaGRscgAAAAAAAAAAbWRpcmFwcGwAAAAAAAAAAAAAAAAtaWxzdAAAAAlpdG9vAAAAF2RhdGEAAAABAAAAAExvYXZhZmYxMS4zLjQAAAAAGnRyYWsAAABcdGtoZAAAAAEAAAAAAAAAAAAAAAEAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAIAAAAAAAACAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAFAAAAAAAQAAAAEAAG1kaWEAAAAgbWRoZAAAAAAAAAAAAAAAAAAAAAADIAAAAAAAAFXEAAAAAAAtaGRscgAAAAAAAAAAdmlkZQAAAAAAAAAAAAAAAFZpZGVvSGFuZGxlcgAAAAAAVm1pbmYAAAAUdm1oZAAAAAEAAAAAAAAAAAAAACRkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAx1cmwgAAAAAQAAABouc3RibAAAAHxzdHNkAAAAAAAAAAEAAABobXA0dgAAAAAAAAABAAAAAAAAAAAAAAACAAIAAgAAAAEAIAAABAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAMAAADMY29scgBGTEFYAAACAAEAAAAQcGFzcCAGAAAAAQAAAAEAAGJveHMAAAAAZmVhdAAAAAEAAAAAAAABAAAAAIAAAAAAABZzdHRsAAAAAAAAAAEAAAABAAACeAAAAAAcc3zcwAAAAAAAAABAAAAAQAAABxzdHNjAAAAAAAAAAEAAAABAAAAAQAAAAEAAAAcc3RzYwAAAAAAAAABAAAAAQAAAAEAAAABAAAAHHN0Y3oAAAAAAAAAEwAAAAEAAAAYAAAABQAAAAoAAAADAAAACgAAAAIAAAAKAAAABAAAAAkAAAADAAAACAAAAAIAAABZc3RzYQAAAAABAAAAAQAAAAEAAAABAAAAAABMdHJhawAAAFx1ZHRhAAAAWG1ldGEAAAAAAAAAIWhkbHIAAAAAAAAAAG1kaXJhcHBsAAAAAAAAAAAAAAAAAC1pbHN0AAAAAAlpdG9vAAAAF2RhdGEAAAABAAAAAExvYXZhZmYxMS4zLjQ=";
-    mv.src = SILENT_VIDEO;
-    mv.play().catch(() => { });
-    unlockOverlay.style.display = "none";
-    document.removeEventListener("click", unlock);
-    document.removeEventListener("touchend", unlock);
-  };
-
-  document.addEventListener("click", unlock, { once: true });
-  document.addEventListener("touchend", unlock, { once: true });
-}
+let hls = null;
 
 const fmt = (s) => {
   s = Math.max(0, Math.floor(s || 0));
@@ -66,57 +29,84 @@ const fmt = (s) => {
 
 function applyVolume() {
   const v = typeof S.masterVolume === "number" ? S.masterVolume : 1;
-  if (gainNode) gainNode.gain.setTargetAtTime(v, audioCtx.currentTime, 0.01);
+  mv.volume = v;
   if (volLabel) volLabel.textContent = `${String(Math.round(v * 100)).padStart(3, "0")}%`;
 }
 
 function applyMode() {
-  const song = S.songs.find(s => s.id === S.queue[S.currentIndex]);
-  if (!song) return;
   const isInstrumental = S.mode === 'instrumental';
-  const urlToPlay = isInstrumental ? (song.rootUrl + song.backingUrl) : (song.rootUrl + song.vocalUrl);
-  if (!mv.paused) playAudio(urlToPlay);
-  for (const id of ["mode伴奏", "mode原唱"]) document.getElementById(id).classList.remove("muted");
+  const targetTrackName = isInstrumental ? 'audio_1' : 'audio_2';
+
+  if (hls && hls.audioTracks.length > 0) {
+    let targetTrackIndex = -1;
+    hls.audioTracks.forEach((track, index) => {
+      if (track.name === targetTrackName) {
+        targetTrackIndex = index;
+      }
+    });
+
+    if (targetTrackIndex !== -1) {
+      console.log(`Switching audio track to: ${targetTrackName} (index: ${targetTrackIndex})`);
+      hls.audioTrack = targetTrackIndex;
+    } else {
+      console.warn(`Audio track named "${targetTrackName}" not found.`);
+    }
+  } else if (mv.audioTracks && mv.audioTracks.length > 0) {
+    for (let i = 0; i < mv.audioTracks.length; i++) {
+      mv.audioTracks[i].enabled = mv.audioTracks[i].label === targetTrackName;
+    }
+  }
+
+  updateModeButtons();
+}
+
+function updateModeButtons() {
+  for (const id of ["mode伴奏", "mode原唱"]) {
+    document.getElementById(id).classList.remove("muted");
+  }
   const map = { instrumental: "mode伴奏", vocal: "mode原唱" };
   document.getElementById(map[S.mode]).classList.add("muted");
 }
 
 function loadSong(song) {
-  if (!audioCtx) initAudioContext();
-  mv.src = song.rootUrl + song.videoUrl;
-  mv.load();
-  applyMode();
+  const hlsUrl = song.rootUrl + song.hlsUrl;
+
+  if (hls) {
+    hls.destroy();
+    hls = null;
+  }
+
+  if (Hls.isSupported()) {
+    hls = new Hls();
+    hls.loadSource(hlsUrl);
+    hls.attachMedia(mv);
+    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+      mv.play();
+    });
+    hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, () => {
+      applyMode();
+    });
+  } else if (mv.canPlayType('application/vnd.apple.mpegurl')) {
+    mv.src = hlsUrl;
+    mv.addEventListener('loadedmetadata', () => {
+      applyMode();
+      mv.play();
+    }, { once: true });
+  }
+  applyVolume();
 }
 
 function playSync() {
-  if (audioCtx && audioCtx.state === 'suspended') {
-    audioCtx.resume().then(() => {
-      const wasPaused = mv.paused;
-      mv.play();
-      if (wasPaused) {
-        applyMode();
-      }
-    });
-  } else {
-    const wasPaused = mv.paused;
-    mv.play();
-    if (wasPaused) {
-      applyMode();
-    }
-  }
+  mv.play();
 }
 
 function pauseBoth() {
   mv.pause();
-  if (audioCtx) audioCtx.suspend();
-  if (currentAudioSource) {
-    try { currentAudioSource.stop(); } catch (e) { }
-  }
 }
 
 function restartBoth() {
   mv.currentTime = 0;
-  playSync();
+  mv.play();
 }
 
 function updateUI() {
@@ -131,10 +121,7 @@ function updateUI() {
 }
 
 function handleSeek() {
-  const wasPlaying = !mv.paused;
-  if (wasPlaying) pauseBoth();
   mv.currentTime = parseFloat(seek.value) || 0;
-  if (wasPlaying) playSync();
 }
 
 function handleEnded() {
@@ -144,7 +131,7 @@ function handleEnded() {
   if (S.queue.length === 0) {
     S.currentIndex = -1;
     pauseBoth();
-    try { mv.src = ""; mv.load(); } catch (e) { }
+    mv.src = "";
   } else {
     S.currentIndex = idx >= S.queue.length ? S.queue.length - 1 : idx;
     playCurrent();
@@ -157,83 +144,16 @@ function playCurrent() {
   const song = S.songs.find((s) => s.id === id);
   if (!song) return;
   loadSong(song);
-  playSync();
   renderQueue();
 }
 
-function showLoading(show) {
-  const overlay = document.getElementById("loading-overlay");
-  if (overlay) overlay.style.display = show ? "flex" : "none";
-}
-
-async function loadAudioBuffer(url) {
-  if (audioBufferCache[url]) return audioBufferCache[url];
-  const progress = document.getElementById("loading-progress");
-  if (progress) progress.value = 0;
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-  const reader = response.body.getReader();
-  const contentLength = +response.headers.get('Content-Length');
-  let receivedLength = 0;
-  let chunks = [];
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
-    receivedLength += value.length;
-    if (contentLength && progress) progress.value = (receivedLength / contentLength) * 100;
+function enqueue(id) {
+  S.queue.push(id);
+  if (S.currentIndex === -1) {
+    S.currentIndex = 0;
+    playCurrent();
   }
-  let chunksAll = new Uint8Array(receivedLength);
-  let position = 0;
-  for (let chunk of chunks) {
-    chunksAll.set(chunk, position);
-    position += chunk.length;
-  }
-  const buffer = await audioCtx.decodeAudioData(chunksAll.buffer);
-  audioBufferCache[url] = buffer;
-  return buffer;
-}
-
-async function enqueue(id) {
-  const song = S.songs.find(s => s.id === id);
-  if (!song) return;
-  showLoading(true);
-  try {
-    const backingFullUrl = song.rootUrl + song.backingUrl;
-    const vocalFullUrl = song.rootUrl + song.vocalUrl;
-    await Promise.all([loadAudioBuffer(backingFullUrl), loadAudioBuffer(vocalFullUrl)]);
-    S.queue.push(id);
-    if (S.currentIndex === -1) {
-      S.currentIndex = 0;
-      playCurrent();
-    }
-    renderQueue();
-  } catch (error) {
-    console.error("預載歌曲失敗:", error);
-    alert("歌曲載入失敗，請檢查網路或檔案路徑。");
-  } finally {
-    showLoading(false);
-  }
-}
-
-async function playAudio(url) {
-  if (currentAudioSource) {
-    try { currentAudioSource.stop(); } catch (e) { }
-  }
-  if (!url || !audioCtx) return;
-
-  try {
-    const buffer = await loadAudioBuffer(url);
-    const source = audioCtx.createBufferSource();
-    source.buffer = buffer;
-    source.connect(gainNode);
-    audioStartTime = audioCtx.currentTime;
-    videoStartTime = mv.currentTime;
-    source.start(audioStartTime, videoStartTime);
-    currentAudioSource = source;
-  } catch (e) {
-    console.error('播放音訊時發生錯誤:', e);
-  }
+  renderQueue();
 }
 
 function removeAt(idx) {
@@ -242,6 +162,7 @@ function removeAt(idx) {
   if (S.queue.length === 0) {
     S.currentIndex = -1;
     pauseBoth();
+    mv.src = "";
   }
   renderQueue();
 }
@@ -276,7 +197,7 @@ function renderQueue() {
     const s = S.songs.find((x) => x.id === id);
     const li = document.createElement("li");
     const isCurrent = i === S.currentIndex;
-    const label = `<span>${i + 1}. ${isCurrent ? "正在撥放▶︎ " : ""}${s?.title || id} - ${s?.artist || ""}</span>`;
+    const label = `<span>${i + 1}. ${isCurrent ? "正在播放▶︎ " : ""}${s?.title || id} - ${s?.artist || ""}</span>`;
     const controls = document.createElement("span");
     if (!isCurrent) {
       const ins = document.createElement("button");
@@ -336,61 +257,59 @@ function renderResults(list) {
   panel.appendChild(table);
 }
 
-btnSearch.onclick = () => {
-  const k = kw.value.trim().toLowerCase();
-  const list = S.songs.filter((s) => (s.title + s.artist).toLowerCase().includes(k));
-  renderResults(list);
-};
-
-if (masterVol) {
-  masterVol.addEventListener("input", (e) => {
-    const v = parseFloat(e.target.value);
-    if (Number.isFinite(v)) {
-      S.masterVolume = v;
-      applyVolume();
-    }
-  });
-  masterVol.value = String(S.masterVolume);
-  applyVolume();
-}
-
 function detectMobileLayout() {
-  const ua = navigator.userAgent || "";
-  const isMobileUA = /Mobi|Android|iPhone|iPad|iPod|Windows Phone/i.test(ua);
-  const isTouch = "ontouchstart" in window || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) || (window.matchMedia && window.matchMedia("(pointer:coarse)").matches);
-  const isMobile = isMobileUA || isTouch;
-  document.body.classList.toggle("mobile", !!isMobile);
+  const isMobile = window.matchMedia("(max-width: 700px)").matches;
+  document.body.classList.toggle("mobile", isMobile);
 }
 
-function visibilityChangeHandler() {
-  if (document.hidden) {
-    return;
+function initEventListeners() {
+  seek.addEventListener('input', handleSeek);
+  btnPlay.onclick = playSync;
+  btnPause.onclick = pauseBoth;
+  btnRestart.onclick = restartBoth;
+  btnSkip.onclick = () => {
+    try { mv.pause(); } catch (e) { }
+    handleEnded();
+  };
+  btnClear.onclick = () => {
+    S.queue.length = 0;
+    S.currentIndex = -1;
+    renderQueue();
+    pauseBoth();
+    mv.src = "";
+  };
+  btnSearch.onclick = () => {
+    const k = kw.value.trim().toLowerCase();
+    const list = S.songs.filter((s) => (s.title + s.artist).toLowerCase().includes(k));
+    renderResults(list);
+  };
+  document.getElementById("mode伴奏").addEventListener('click', () => {
+    if (S.mode === "instrumental") return;
+    S.mode = "instrumental";
+    applyMode();
+  });
+  document.getElementById("mode原唱").addEventListener('click', () => {
+    if (S.mode === "vocal") return;
+    S.mode = "vocal";
+    applyMode();
+  });
+  if (masterVol) {
+    masterVol.addEventListener("input", (e) => {
+      const v = parseFloat(e.target.value);
+      if (Number.isFinite(v)) {
+        S.masterVolume = v;
+        applyVolume();
+      }
+    });
+    masterVol.value = String(S.masterVolume);
+    applyVolume();
   }
-
-  if (!audioCtx || mv.paused || !currentAudioSource) {
-    return;
-  }
-
-  const elapsedAudioTime = audioCtx.currentTime - audioStartTime;
-  const correctVideoTime = videoStartTime + elapsedAudioTime;
-
-  if (Math.abs(mv.currentTime - correctVideoTime) > 0.5) {
-    mv.currentTime = correctVideoTime;
-  }
+  mv.addEventListener("ended", handleEnded);
+  window.addEventListener("resize", detectMobileLayout);
 }
 
 requestAnimationFrame(updateUI);
-seek.addEventListener('input', handleSeek);
-btnPlay.onclick = playSync;
-btnPause.onclick = pauseBoth;
-btnRestart.onclick = restartBoth;
-document.getElementById("mode伴奏").onclick = () => { S.mode = "instrumental"; applyMode(); };
-document.getElementById("mode原唱").onclick = () => { S.mode = "vocal"; applyMode(); };
-btnSkip.onclick = () => { try { mv.pause(); } catch (e) { } handleEnded(); };
-mv.addEventListener("ended", handleEnded);
-btnClear.onclick = () => { S.queue.length = 0; S.currentIndex = -1; renderQueue(); pauseBoth(); };
-document.addEventListener("visibilitychange", visibilityChangeHandler);
 detectMobileLayout();
-window.addEventListener("resize", detectMobileLayout);
 loadDB();
-setupAudioUnlock();
+initEventListeners();
+updateModeButtons();
