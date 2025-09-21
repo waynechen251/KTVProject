@@ -439,4 +439,14 @@ function enqueue(id) {
 
 ---
 
+# DEMO
+
+![img](docs/images/photo_2025-09-21_17-45-10.jpg)  
+![img](docs/images/photo_2025-09-21_17-45-16.jpg)  
+![img](docs/images/photo_2025-09-21_17-45-19.jpg)  
+![img](docs/images/photo_2025-09-21_17-45-22.jpg)  
+![img](docs/images/photo_2025-09-21_17-45-24.jpg)  
+
+---
+
 🎤 **享受您的 KTV 體驗！**
