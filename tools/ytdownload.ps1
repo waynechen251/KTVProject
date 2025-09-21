@@ -1,9 +1,8 @@
 #Requires -Version 5.1
 [CmdletBinding()]
 param(
-    [Parameter(Position = 0, Mandatory)][string]$Url,   # 位置參數 → 只給網址即可
-    [string]$OutputDir = '.',
-    [string]$FfmpegDir = '.\ffmpeg\bin'
+    [Parameter(Position = 0, Mandatory)][string]$Url,
+    [string]$OutputDir = '.'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -13,46 +12,53 @@ if (-not $Url) {
     if (-not $Url) { throw '未提供網址。' }
 }
 
-# 1. 確認 yt-dlp
 $yt = (Get-Command yt-dlp -ErrorAction SilentlyContinue).Source
 if (-not $yt) { throw 'yt-dlp.exe 未安裝或未加入 PATH。' }
 
-# 2. 建立輸出資料夾
 if (-not (Test-Path $OutputDir)) {
     New-Item -ItemType Directory -Path $OutputDir | Out-Null
 }
 
-# 3. 下載 + 轉檔參數
-$arguments = @(
+# 獲取影片標題作為基礎檔名
+$baseNameTemplate = [IO.Path]::Combine($OutputDir, '%(title)s')
+$titleArgs = @($Url, '--get-filename', '-o', $baseNameTemplate)
+$baseFilePath = (& $yt @titleArgs | Select-Object -First 1).Trim()
+
+# 1. 下載最高品質的無聲影片
+$videoPath = $baseFilePath + '_video.mp4'
+$ytDlpVideoArgs = @(
     $Url
-    '--ffmpeg-location', $FfmpegDir                      # 指定 ffmpeg 目錄
-    '-f', 'bestvideo+bestaudio/best'                    # 最高畫質＋音質
-    '--recode-video', 'mp4'                             # 下載後若非 MP4 立即轉
-    '--postprocessor-args', '-c:v libx264 -crf 22 -preset fast -c:a copy'
-    '-o', "$OutputDir\%(title)s.%(ext)s"                # 檔名：標題.mp4
+    '-f', 'bestvideo[ext=mp4]/bestvideo' # 優先下載 MP4 格式的純影像
+    '--recode-video', 'mp4'              # 如果不是 MP4，則轉換為 MP4
+    '-o', $videoPath
     '--no-mtime'
     '--restrict-filenames'
 )
+Write-Host '正在下載最高品質的無聲影片...'
+& $yt @ytDlpVideoArgs
 
-# 4. 執行（下載 MP4，然後從產生的 MP4 擷取 MP3）
-& $yt @arguments
+# 2. 下載最高品質的純音訊
+$audioPath = $baseFilePath + '_audio.m4a'
+$ytDlpAudioArgs = @(
+    $Url
+    '-f', 'bestaudio[ext=m4a]/bestaudio' # 優先下載 m4a 格式的純音訊
+    '-o', $audioPath
+    '--no-mtime'
+    '--restrict-filenames'
+)
+Write-Host '正在下載最高品質的音訊...'
+& $yt @ytDlpAudioArgs
 
-# 找到剛剛產生的 mp4（選取輸出資料夾中最新的 .mp4）
-$mp4 = Get-ChildItem -Path $OutputDir -Filter '*.mp4' -File |
-Sort-Object LastWriteTime -Descending | Select-Object -First 1
+$finalVideoFile = Get-ChildItem -Path $videoPath -ErrorAction SilentlyContinue
+$finalAudioFile = Get-ChildItem -Path $audioPath -ErrorAction SilentlyContinue
 
-if (-not $mp4) {
-    throw '找不到下載完成的 MP4 檔案。'
+if (-not $finalVideoFile) {
+    throw '無聲影片下載失敗。'
+}
+if (-not $finalAudioFile) {
+    throw '音訊檔案下載失敗。'
 }
 
-# 確認 ffmpeg
-$ffmpeg = Join-Path $FfmpegDir 'ffmpeg.exe'
-if (-not (Test-Path $ffmpeg)) { throw "ffmpeg.exe 未在指定路徑找到：$ffmpeg" }
-
-# 產生 MP3 路徑，與 MP4 同名但副檔名為 .mp3
-$mp3Path = [System.IO.Path]::ChangeExtension($mp4.FullName, '.mp3')
-
-# 使用 ffmpeg 擷取音訊為 mp3（libmp3lame，品質 q:a 2）
-& $ffmpeg -y -i $mp4.FullName -vn -c:a libmp3lame -q:a 2 $mp3Path
-
-Write-Output "已產生：`nMP4: $($mp4.FullName)`nMP3: $mp3Path"
+Write-Host '--- 操作完成 ---'
+Write-Output "無聲影片檔案: $($finalVideoFile.FullName)"
+Write-Output "純音訊檔案:   $($finalAudioFile.FullName)"
