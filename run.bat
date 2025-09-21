@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-set "REGISTRY=192.168.0.11:5000"
+set "REGISTRY=127.0.0.1:5000"
 set "IMAGE_NAME=mini-ktv"
 set "IMAGE=%REGISTRY%/mini-ktv/%IMAGE_NAME%:latest"
 
