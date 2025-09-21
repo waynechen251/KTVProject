@@ -10,7 +10,7 @@
 - 🎤 **點歌佇列管理**：完整的排隊、插播、刪除功能
 - 🔍 **歌曲搜尋**：支援歌名和歌手搜尋
 - 🎛️ **播放控制**：播放/暫停、重唱、切歌、音量調節
-- 🐳 **Docker 部署**：輕鬆容器化部署
+- 🐳 **多種部署方式**：支援 Windows、Linux 和 Docker 部署
 
 ## 項目結構
 
@@ -36,13 +36,174 @@ KTVProject/
 
 ## 安裝與部署
 
-### 前置需求
+### 🪟 Windows 部署
 
-- Docker 和 Docker Compose
-- PowerShell 5.1+ （用於工具腳本）
-- FFmpeg （用於媒體處理）
+#### 前置需求
+- Windows 10/11 或 Windows Server
+- Nginx for Windows
+- PowerShell 5.1+
+- FFmpeg
 
-### 快速開始
+#### 安裝步驟
+
+1. **下載並安裝 Nginx**
+   ```cmd
+   # 下載 Nginx for Windows
+   # 從 http://nginx.org/en/download.html 下載穩定版本
+   # 解壓到 C:\nginx
+   ```
+
+2. **克隆項目**
+   ```cmd
+   git clone https://github.com/waynechen251/KTVProject.git
+   cd KTVProject
+   ```
+
+3. **配置 Nginx**
+   ```cmd
+   # 複製配置文件到 Nginx 目錄
+   copy src\nginx.conf C:\nginx\conf\nginx.conf
+   
+   # 修改配置文件中的路徑為您的項目路徑
+   # 將 /usr/share/nginx/html 替換為 C:/path/to/KTVProject/src
+   ```
+
+4. **準備歌曲檔案並轉換**
+   ```powershell
+   # 執行 HLS 轉換
+   .\tools\m3u8.ps1
+   ```
+
+5. **啟動服務**
+   ```cmd
+   # 啟動 Nginx
+   C:\nginx\nginx.exe
+   
+   # 檢查服務狀態
+   tasklist /fi "imagename eq nginx.exe"
+   ```
+
+6. **訪問應用**
+   打開瀏覽器訪問：`http://localhost:80`
+
+#### 管理命令
+```cmd
+# 停止 Nginx
+C:\nginx\nginx.exe -s stop
+
+# 重新載入配置
+C:\nginx\nginx.exe -s reload
+
+# 測試配置
+C:\nginx\nginx.exe -t
+```
+
+### 🐧 Linux 部署
+
+#### 前置需求
+- Ubuntu 20.04+ / CentOS 8+ / Debian 11+
+- Nginx
+- FFmpeg
+- Git
+
+#### 安裝步驟
+
+1. **安裝依賴**
+   ```bash
+   # Ubuntu/Debian
+   sudo apt update
+   sudo apt install nginx ffmpeg git -y
+   
+   # CentOS/RHEL
+   sudo yum install nginx ffmpeg git -y
+   ```
+
+2. **克隆項目**
+   ```bash
+   git clone https://github.com/waynechen251/KTVProject.git
+   cd KTVProject
+   ```
+
+3. **配置 Nginx**
+   ```bash
+   # 備份原配置
+   sudo cp /etc/nginx/nginx.conf /etc/nginx/nginx.conf.backup
+   
+   # 複製項目配置
+   sudo cp src/nginx.conf /etc/nginx/nginx.conf
+   
+   # 修改配置文件中的路徑
+   sudo sed -i "s|/usr/share/nginx/html|$(pwd)/src|g" /etc/nginx/nginx.conf
+   
+   # 測試配置
+   sudo nginx -t
+   ```
+
+4. **設置權限**
+   ```bash
+   # 設置適當的檔案權限
+   sudo chown -R www-data:www-data .
+   sudo chmod -R 755 .
+   ```
+
+5. **準備歌曲檔案並轉換**
+   ```bash
+   # 安裝 PowerShell (如需要)
+   # Ubuntu
+   sudo snap install powershell --classic
+   
+   # 執行 HLS 轉換 (需要 PowerShell)
+   pwsh ./tools/m3u8.ps1
+   
+   # 或者使用 bash 版本的轉換腳本
+   # (需要另外編寫 bash 版本)
+   ```
+
+6. **啟動服務**
+   ```bash
+   # 啟動 Nginx
+   sudo systemctl start nginx
+   
+   # 設置開機自啟
+   sudo systemctl enable nginx
+   
+   # 檢查狀態
+   sudo systemctl status nginx
+   ```
+
+7. **防火牆設置**
+   ```bash
+   # Ubuntu (ufw)
+   sudo ufw allow 80
+   
+   # CentOS (firewalld)
+   sudo firewall-cmd --permanent --add-port=80/tcp
+   sudo firewall-cmd --reload
+   ```
+
+8. **訪問應用**
+   打開瀏覽器訪問：`http://your-server-ip:80`
+
+#### 管理命令
+```bash
+# 重新載入 Nginx 配置
+sudo systemctl reload nginx
+
+# 重啟 Nginx
+sudo systemctl restart nginx
+
+# 查看 Nginx 日誌
+sudo tail -f /var/log/nginx/access.log
+sudo tail -f /var/log/nginx/error.log
+```
+
+### 🐳 Docker 部署
+
+#### 前置需求
+- Docker 20.10+
+- Docker Compose 1.29+
+
+#### 快速開始
 
 1. **克隆項目**
    ```bash
@@ -52,18 +213,46 @@ KTVProject/
 
 2. **構建 Docker 映像**
    ```batch
+   # Windows
    build.bat
+   
+   # Linux/macOS
+   docker-compose build
    ```
 
 3. **運行服務**
    ```batch
+   # Windows
    run.bat
+   
+   # Linux/macOS
+   docker-compose up -d
    ```
 
 4. **訪問應用**
    打開瀏覽器訪問：`http://localhost:8080`
 
-### 手動部署
+#### Docker 管理命令
+```bash
+# 查看運行狀態
+docker-compose ps
+
+# 查看日誌
+docker-compose logs -f
+
+# 停止服務
+docker-compose down
+
+# 重建並重啟
+docker-compose up -d --build
+
+# 清理未使用的映像
+docker system prune -a
+```
+
+### 歌曲資料準備 (通用)
+
+無論使用哪種部署方式，都需要準備歌曲資料：
 
 1. **準備歌曲檔案**
    - 在 `db/songs/` 目錄下建立歌手/歌曲資料夾
@@ -74,6 +263,7 @@ KTVProject/
 
 2. **生成 HLS 串流**
    ```powershell
+   # Windows/Linux (with PowerShell)
    .\tools\m3u8.ps1
    ```
 
