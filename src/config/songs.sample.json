@@ -1,0 +1,35 @@
+﻿[
+    {
+        "id": "1",
+        "title": "title1",
+        "artist": "artist1",
+        "rootUrl": "db/songs/artist1/title1/",
+        "videoUrl": "mv.mp4",
+        "backingUrl": "backing.m4a",
+        "vocalUrl": "vocal.m4a",
+        "hlsUrl": "hls/master.m3u8",
+        "duration": 187
+    },
+    {
+        "id": "2",
+        "title": "title2",
+        "artist": "artist1",
+        "rootUrl": "db/songs/artist1/title2/",
+        "videoUrl": "mv.mp4",
+        "backingUrl": "backing.m4a",
+        "vocalUrl": "vocal.m4a",
+        "hlsUrl": "hls/master.m3u8",
+        "duration": 205
+    },
+    {
+        "id": "3",
+        "title": "title1",
+        "artist": "artist2",
+        "rootUrl": "db/songs/artist2/title1/",
+        "videoUrl": "mv.mp4",
+        "backingUrl": "backing.m4a",
+        "vocalUrl": "vocal.m4a",
+        "hlsUrl": "hls/master.m3u8",
+        "duration": 170
+    }
+]
