@@ -1,12 +1,12 @@
 # Mini KTV 專案 - AI 開發指南
 
 ## 專案概覽
-這是一個網頁版 KTV 系統，採用 **Nginx 靜態託管架構**，支援 HLS (HTTP Live Streaming) 串流、雙聲道音訊切換（伴奏/原唱）以及點歌佇列管理。核心特色是使用 FFmpeg 離線處理，將 MP4 影片與雙軌音訊（backing.m4a / vocal.m4a）轉換為 HLS 格式，透過 hls.js 在瀏覽器中實現即時音軌切換。
+這是一個網頁版 KTV 系統，採用 **Nginx 靜態託管架構**，支援 HLS (HTTP Live Streaming) 串流、雙聲道音訊切換（伴奏/原唱）以及點歌佇列管理。核心特色是使用 FFmpeg 離線處理，將 MP4 影片與雙軌音訊（backing.mp3/.m4a / vocal.mp3/.m4a）轉換為 HLS 格式，透過 hls.js 在瀏覽器中實現即時音軌切換。
 
 ## 架構設計
 
 ### 前端架構（Vanilla JavaScript）
-- **狀態管理**：使用全域物件 `S` 集中管理所有應用狀態（`src/app.js:1-7`）
+- **狀態管理**：使用全域物件 `S` 集中管理所有應用狀態
   ```javascript
   const S = {
     songs: [],        // 歌曲資料庫
@@ -17,20 +17,20 @@
   };
   ```
 - **播放器整合**：使用 hls.js 實現 HLS 播放與雙音軌切換（`applyMode()` 函式）
-- **UI 更新**：採用 `requestAnimationFrame` 進行即時進度條更新（`src/app.js:107-118`）
+- **UI 更新**：採用 `requestAnimationFrame` 進行即時進度條更新
 
 ### 資料流架構
-1. **歌曲來源**：`workspace/<artist>/<song>/` 包含 `mv.mp4`、`backing.mp3`、`vocal.mp3`
-2. **HLS 轉換**：`tools/m3u8.ps1` 使用 FFmpeg 將影片與雙音軌轉換為 HLS 格式
-3. **輸出結構**：`db/songs/<artist>/<song>/hls/` 包含 `master.m3u8` 與 segment 檔案
-4. **前端載入**：`src/config/songs.json` 定義歌曲索引，指向 HLS 路徑
+1. **歌曲來源**：`workspace/<artist>/<song>/` 包含原始素材（`mv.mp4`、`backing.mp3/.m4a`、`vocal.mp3/.m4a`）
+2. **HLS 轉換**：`tools/m3u8.ps1` 從 `workspace/` 讀取原始檔案，使用 FFmpeg 轉換為 HLS 格式
+3. **輸出結構**：轉換後的 HLS 檔案輸出到 `db/songs/<artist>/<song>/hls/`，包含 `master.m3u8` 與 segment 檔案
+4. **前端載入**：`src/config/songs.json` 定義歌曲索引，指向 `db/songs/` 下的 HLS 路徑
 
 ### HLS 音軌映射規範
-- **重要**：FFmpeg 生成的音軌命名為 `backing`（伴奏）和 `vocal`（原唱）
-- 前端音軌切換邏輯：
-  - `S.mode === 'instrumental'` → 搜尋 `track.name === 'audio_1'`（實際應為 `backing`）
-  - `S.mode === 'vocal'` → 搜尋 `track.name === 'audio_2'`（實際應為 `vocal`）
-  - **已知問題**：`applyMode()` 中的音軌名稱映射與 FFmpeg 輸出不一致，需修正為 `backing` 和 `vocal`
+- **重要**：FFmpeg 配置使用 `name:backing` 和 `name:vocal`，但實際生成的 HLS 檔案中音軌名稱為 `audio_1`（伴奏）和 `audio_2`（原唱）
+- 前端音軌切換邏輯（`src/app.js` 中的 `applyMode()` 函式）：
+  - `S.mode === 'instrumental'` → 搜尋 `track.name === 'audio_1'`（伴奏）
+  - `S.mode === 'vocal'` → 搜尋 `track.name === 'audio_2'`（原唱）
+- **注意**：前端程式碼與實際 HLS 輸出已正確匹配，使用 `audio_1` / `audio_2` 命名
 
 ## 關鍵開發工作流程
 
@@ -61,16 +61,16 @@
 4. **整理檔案到 workspace**
    ```
    workspace/<artist>/<song>/
-   ├── mv.mp4        # 含字幕的影片
-   ├── backing.mp3   # 伴奏音訊
-   └── vocal.mp3     # 原唱音訊
+   ├── mv.mp4               # 含字幕的影片
+   ├── backing.mp3/.m4a     # 伴奏音訊（支援 mp3 或 m4a）
+   └── vocal.mp3/.m4a       # 原唱音訊（支援 mp3 或 m4a）
    ```
 
 5. **轉換為 HLS 格式**
    ```powershell
-   # 將 workspace 中的歌曲複製到 db/songs，然後執行：
+   # 從 workspace 讀取原始檔案，自動輸出到 db/songs
    pwsh ./tools/m3u8.ps1
-   # 自動掃描 db/songs/<artist>/<song>/ 並生成 hls/ 目錄
+   # 掃描 workspace/<artist>/<song>/ 並將 HLS 輸出到 db/songs/<artist>/<song>/hls/
    ```
 
 6. **更新歌曲資料庫**
@@ -85,16 +85,20 @@
      "duration": 187
    }
    ```
+   - **注意**：舊版 `videoUrl`、`backingUrl`、`vocalUrl` 欄位已不再使用（系統現在只使用 HLS）
 
 ### HLS 轉換機制（tools/m3u8.ps1）
-- **輸入檢測**：掃描 `db/songs/` 下所有包含 `mv.mp4`、`backing.mp3`、`vocal.mp3` 的目錄
-- **FFmpeg 指令關鍵參數**（第 87-98 行）：
+- **輸入來源**：掃描 `workspace/` 下所有包含 `mv.mp4`、`backing.mp3/.m4a`、`vocal.mp3/.m4a` 的目錄
+- **輸出目標**：將 HLS 檔案輸出到對應的 `db/songs/<artist>/<song>/hls/` 路徑
+- **格式支援**：同時支援 `.mp3` 和 `.m4a` 音訊格式，自動偵測可用格式
+- **FFmpeg 指令關鍵參數**：
   ```powershell
   -map 0:v:0 -map 1:a:0 -map 2:a:0  # 映射影片 + 雙音軌
   -var_stream_map 'v:0,agroup:audio a:0,agroup:audio,name:backing,default:yes a:1,agroup:audio,name:vocal'
   ```
-- **輸出驗證**：自動列印生成的 `.m3u8` 檔案內容供檢查（第 111-119 行）
+- **輸出驗證**：使用 `-Verbose` 參數可顯示生成的 `.m3u8` 檔案內容
 - **日誌記錄**：完整轉換日誌保存於 `tools/m3u8.log`
+- **強制重轉**：使用 `-Force` 參數可強制重新轉換已存在的 HLS 檔案
 
 ### 部署環境差異
 
@@ -106,14 +110,14 @@
   - 埠映射：主機 8080 → 容器 80
 
 #### Windows 本機部署
-- Nginx 配置路徑需手動替換為絕對路徑（參考 `readme.md:53-57`）
+- Nginx 配置路徑需手動替換為絕對路徑（參考 `readme.md` 中的「本機開發」章節）
 - FFmpeg 工具放置於 `ffmpeg/bin/` 目錄
 
 ## 專案特定慣例
 
 ### 檔案命名規範
 - 歌曲目錄：`<artist>/<song>/`（允許中文與空格）
-- 音訊檔案：強制命名為 `backing.mp3`（伴奏）、`vocal.mp3`（原唱）
+- 音訊檔案：命名為 `backing.mp3` 或 `backing.m4a`（伴奏）、`vocal.mp3` 或 `vocal.m4a`（原唱）
 - 影片檔案：強制命名為 `mv.mp4`
 
 ### 狀態管理模式
@@ -121,7 +125,7 @@
 - 範例：新增歌曲到佇列 → `S.queue.push(id)` → `renderQueue()`
 
 ### Nginx CORS 與快取設定
-- HLS 檔案（.m3u8、.ts）必須設定 `Access-Control-Allow-Origin: *`（`src/nginx.conf:21-24`）
+- HLS 檔案（.m3u8、.ts）必須設定 `Access-Control-Allow-Origin: *`（參考 `src/nginx.conf`）
 - 所有回應預設 `Cache-Control: no-store` 以避免開發時快取問題
 
 ## 整合點與相依性
@@ -159,8 +163,8 @@
 
 ### 修復音軌切換
 如音軌切換無效，檢查：
-1. `master.m3u8` 是否包含正確的音軌名稱（`backing` / `vocal`）
-2. `applyMode()` 中的 `targetTrackName` 是否匹配 FFmpeg 輸出
+1. `master.m3u8` 是否包含正確的音軌名稱（`audio_1` / `audio_2`）
+2. `applyMode()` 中的 `targetTrackName` 是否匹配 HLS 實際輸出（應為 `audio_1` / `audio_2`）
 
 ### 新增播放器功能
 修改 `src/app.js`，在 `S` 物件中新增狀態，並在 `initEventListeners()` 綁定 UI 事件。
@@ -170,12 +174,10 @@
 - 使用 FFprobe 手動檢查音軌：`ffprobe -show_streams mv.mp4`
 
 ## 重要注意事項
-- **音訊同步**：backing.mp3 和 vocal.mp3 必須與 mv.mp4 時長完全一致
+- **音訊同步**：backing 和 vocal 音訊檔案（.mp3 或 .m4a）必須與 mv.mp4 時長完全一致
 - **編碼格式**：HLS 音訊統一轉換為 AAC 192k（`-b:a 192k`）
-- **UI 互動鎖定**：首次播放前需使用者點擊觸發（`isInteracted` 標誌，`src/app.js:154-158`）
+- **UI 互動鎖定**：首次播放前需使用者點擊觸發（`isInteracted` 標誌，參考 `src/app.js` 中的 `enqueue()` 函式）
 - **PowerShell 執行策略**：在 Windows 上需設定 `Set-ExecutionPolicy RemoteSigned`
 - **PowerShell 腳本編碼**：所有 `.ps1` 腳本必須使用 **UTF-8 with BOM** 編碼，否則中文會出現亂碼導致執行失敗
   - VS Code 設定方式：開啟檔案 → 右下角編碼 → 「透過編碼儲存」 → 「UTF-8 with BOM」
   - 或在 `settings.json` 加入：`"[powershell]": { "files.encoding": "utf8bom" }`
-  - 詳見 `tools/ENCODING-FIX.md`
-- **不需要自動化測試**：專案無測試環節，品質控管依賴手動驗證與播放測試
