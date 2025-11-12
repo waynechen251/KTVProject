@@ -130,7 +130,6 @@
      "duration": 187
    }
    ```
-   - **注意**：舊版 `videoUrl`、`backingUrl`、`vocalUrl` 欄位已不再使用（系統現在只使用 HLS）
 
 ### HLS 轉換機制（tools/m3u8.ps1）
 - **輸入來源**：掃描 `workspace/` 下所有包含 `mv.mp4`、`backing.mp3/.m4a`、`vocal.mp3/.m4a` 的目錄
