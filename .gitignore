@@ -1,5 +1,7 @@
 db/
 ffmpeg/
+workspace/
+output/
 
 *.log
 songs.json
